@@ -177,6 +177,9 @@ class GestureEngineTest {
     fun pinchAfterLossNeedsDebounceAgain() {
         enterPinch()
         feedNoHand()
+        // Back with the fingers apart (a pinch held through the loss is not a new pinch; see GestureFlickTest).
+        open()
+        open()
         assertEquals(GestureState.TRACKING, pinch())
         assertEquals(GestureState.PINCH, pinch())
     }

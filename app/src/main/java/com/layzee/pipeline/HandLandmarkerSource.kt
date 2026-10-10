@@ -125,8 +125,6 @@ internal class HandLandmarkerSource(
 
     fun close() {
         closed = true
-        // Stopped mid-Pinch: lift the virtual finger so no stroke is left pressed.
-        dispatcherProvider()?.release()
         landmarker.close()
         mpImage?.close()
     }
@@ -144,7 +142,6 @@ internal class HandLandmarkerSource(
         frame.frameWidth = uprightWidth
         frame.frameHeight = uprightHeight
         val dispatcher = dispatcherProvider()
-        frame.screenTouched = dispatcher?.consumeTouched() ?: false
 
         val hands = result.landmarks()
         val handedness = result.handedness()
@@ -175,16 +172,8 @@ internal class HandLandmarkerSource(
     }
 
     private fun dispatch(dispatcher: SwipeDispatcher) {
-        if (BuildConfig.DEBUG) {
-            Log.d("LayzeeSwipe", "${output.command} x=${output.x.toInt()} y=${output.y.toInt()} v=${output.velocityY.toInt()}")
-        }
-        when (output.command) {
-            SwipeCommand.START -> dispatcher.start(output.x, output.y, output.toY)
-            SwipeCommand.MOVE -> dispatcher.move(output.x, output.y)
-            SwipeCommand.LIFT -> dispatcher.lift(output.y, output.velocityY, config.screenHeight - 1f)
-            SwipeCommand.CANCEL -> dispatcher.cancel()
-            SwipeCommand.NONE -> Unit
-        }
+        if (BuildConfig.DEBUG) Log.d("LayzeeSwipe", "${output.command} y=${output.y.toInt()}->${output.toY.toInt()}")
+        if (output.command == SwipeCommand.FLICK) dispatcher.flick(output.x, output.y, output.toY)
     }
 
     private companion object {

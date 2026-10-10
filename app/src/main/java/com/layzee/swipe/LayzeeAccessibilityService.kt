@@ -14,16 +14,13 @@ class LayzeeAccessibilityService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
-        dispatcher?.release()
         dispatcher = null
         return super.onUnbind(intent)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
 
-    override fun onInterrupt() {
-        dispatcher?.release()
-    }
+    override fun onInterrupt() = Unit
 
     companion object {
         /** Non-null only while the service is enabled and connected. */

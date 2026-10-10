@@ -15,3 +15,7 @@
 - [ ] Diverifikasi di playground: menaikkan swipe ratio membuat jarak swipe terlihat lebih jauh untuk gerak tangan yang sama; menurunkannya sebaliknya.
 - [ ] Diverifikasi di HP uji: sensitivitas lebih ketat mengurangi pinch tak sengaja, lebih longgar membuat pinch lebih mudah terbaca.
 - [ ] Tidak ada pengaturan "kecepatan scroll" atau "pilihan kamera" (di luar scope).
+
+## Comments
+
+- 2026-10-10: Swipe ratio tidak ada lagi (pinch = satu flick tetap, lihat komentar di tiket 07). Yang tersisa untuk tiket ini: sensitivitas pinch, dan bila perlu jarak/kecepatan flick (`flickDistanceFraction`, durasi di `SwipeDispatcher`) sebagai pengaturan. Tinjau ulang lingkup tiket ini sebelum dikerjakan.

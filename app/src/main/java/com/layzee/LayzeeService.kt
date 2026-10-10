@@ -29,8 +29,8 @@ import com.layzee.swipe.LayzeeAccessibilityService
  * Android shows its notification.
  *
  * The camera is bound to this service's own lifecycle, which is STARTED for as long as the service lives.
- * If the system destroys the service mid-Pinch, [onDestroy] lifts the virtual finger so no stroke stays
- * pressed. Not sticky: a restart without the Dashboard in front could not reopen the camera anyway.
+ * A flick is one short gesture, so stopping the service never leaves a stroke hanging. Not sticky: a restart
+ * without the Dashboard in front could not reopen the camera anyway.
  */
 class LayzeeService : Service(), LifecycleOwner {
     private val registry = LifecycleRegistry(this)
@@ -73,8 +73,6 @@ class LayzeeService : Service(), LifecycleOwner {
     override fun onDestroy() {
         pipeline?.release()
         pipeline = null
-        // The pipeline lifts on its own thread; lift here too (idempotent) in case the process dies next.
-        LayzeeAccessibilityService.dispatcher?.release()
         registry.currentState = Lifecycle.State.DESTROYED
         running = false
         onRunningChanged?.invoke()

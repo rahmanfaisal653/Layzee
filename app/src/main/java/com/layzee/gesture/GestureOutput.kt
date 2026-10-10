@@ -5,21 +5,15 @@ class GestureOutput {
     var state = GestureState.IDLE
         internal set
 
-    /** Swipe command for this frame; [SwipeCommand.NONE] when there is nothing new to send. */
+    /** Swipe command for this frame; [SwipeCommand.NONE] when there is nothing to send. */
     var command = SwipeCommand.NONE
         internal set
 
-    /** Virtual finger position in screen pixels; valid for START, MOVE, LIFT and CANCEL. */
+    /** Where the flick starts and ends, in screen pixels; valid for FLICK. */
     var x = 0f
         internal set
     var y = 0f
         internal set
-
-    /** Where the first segment of the stroke ends, in screen pixels; valid for START. */
     var toY = 0f
-        internal set
-
-    /** Vertical speed of the virtual finger in px/s (positive = down); valid for LIFT. */
-    var velocityY = 0f
         internal set
 }
