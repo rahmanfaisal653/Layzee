@@ -1,74 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
-    android:orientation="vertical">
+    android:background="#FFFFFF">
 
-    <!-- Camera test header; kept short so the virtual finger's start point lands on the playground list. -->
-    <FrameLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="220dp">
+        android:layout_height="match_parent">
 
-        <com.layzee.LandmarkView
-            android:id="@+id/landmarks"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <TextView
-            android:id="@+id/status"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="top|center_horizontal"
-            android:layout_marginTop="32dp"
-            android:background="#99000000"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="4dp"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-    <!-- Start/Stop; the Accessibility and Overlay shortcuts are temporary until the permission guide (ticket 10). -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/app_name"
+                android:textColor="#000000"
+                android:textSize="28sp" />
 
-        <Button
-            android:id="@+id/toggle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/guide_intro"
+                android:textColor="#333333" />
 
-        <Button
-            android:id="@+id/open_accessibility"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/debug_open_accessibility" />
+            <!-- Shown only when Layzee was found dead without the user's Stop. -->
+            <TextView
+                android:id="@+id/died_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFB300"
+                android:padding="8dp"
+                android:text="@string/died_hint"
+                android:textColor="#000000"
+                android:visibility="gone" />
 
-        <Button
-            android:id="@+id/open_overlay_permission"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/debug_open_overlay" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/step_accessibility"
+                style="@style/StepTitle" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/step_accessibility_why"
+                android:textColor="#333333" />
+            <Button
+                android:id="@+id/open_accessibility"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/step_accessibility_action" />
 
-    <TextView
-        android:id="@+id/accessibility_hint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#FFB300"
-        android:padding="8dp"
-        android:text="@string/accessibility_off"
-        android:textColor="#000000" />
+            <TextView
+                android:id="@+id/step_overlay"
+                style="@style/StepTitle" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/step_overlay_why"
+                android:textColor="#333333" />
+            <Button
+                android:id="@+id/open_overlay_permission"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/step_overlay_action" />
 
-    <!-- Playground: a plain scrollable list, no numbers shown. -->
+            <TextView
+                android:id="@+id/step_camera"
+                style="@style/StepTitle" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/step_camera_why"
+                android:textColor="#333333" />
+            <Button
+                android:id="@+id/request_camera"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/step_camera_action" />
+
+            <TextView
+                android:id="@+id/step_battery"
+                style="@style/StepTitle" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/step_battery_why"
+                android:textColor="#333333" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button
+                    android:id="@+id/open_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/step_battery_action" />
+                <Button
+                    android:id="@+id/open_app_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/step_app_info_action" />
+            </LinearLayout>
+            <CheckBox
+                android:id="@+id/battery_done"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/step_battery_done"
+                android:textColor="#000000" />
+
+            <Button
+                android:id="@+id/toggle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp" />
+
+            <Button
+                android:id="@+id/open_playground"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/open_playground" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Playground: a plain scrollable list, no numbers shown. Opened from the guide; Back closes it. -->
     <ListView
         android:id="@+id/playground"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:divider="@null" />
-</LinearLayout>
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:divider="@null"
+        android:visibility="gone" />
+</FrameLayout>

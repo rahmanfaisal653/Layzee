@@ -1,18 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Layzee</string>
-    <string name="status_off">Off</string>
-    <string name="status_idle">Idle</string>
-    <string name="status_tracking">Tracking</string>
-    <string name="status_pinch">Pinch</string>
-    <string name="camera_permission_needed">Izin kamera dibutuhkan</string>
     <string name="accessibility_description">Layzee memakai izin ini hanya untuk menyentuh dan menggeser layar atas nama gesture pinch Anda. Layzee tidak membaca isi layar, dan gambar kamera diproses di HP tanpa dikirim ke mana pun.</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
     <string name="notification_channel">Layzee aktif</string>
     <string name="notification_text">Kamera menyala. Buka Layzee untuk menghentikan.</string>
-    <string name="debug_open_accessibility">Aksesibilitas</string>
-    <string name="accessibility_off">Aktifkan Layzee di pengaturan Aksesibilitas</string>
     <string name="open_dashboard">Buka dashboard</string>
-    <string name="debug_open_overlay">Overlay</string>
+    <string name="guide_intro">Layzee membaca satu tangan lewat kamera depan, lalu mengganti page di app lain setiap kali Anda pinch. Selesaikan langkah di bawah sebelum Start.</string>
+    <string name="step_accessibility">Accessibility Service</string>
+    <string name="step_accessibility_why">Android hanya mengizinkan app menyentuh dan menggeser layar app lain lewat Accessibility Service. Layzee memakainya hanya untuk mengirim satu geseran ke atas setiap kali Anda pinch. Layzee tidak membaca isi layar. Gambar kamera diproses di HP ini saja dan tidak dikirim ke mana pun; Layzee bahkan tidak punya izin internet.</string>
+    <string name="step_accessibility_action">Aktifkan Accessibility</string>
+    <string name="consent_title">Izin Accessibility</string>
+    <string name="consent_message">Layzee akan membuka pengaturan Accessibility agar Anda mengaktifkannya. Izin ini dipakai hanya untuk menyentuh dan menggeser layar saat Anda pinch. Layzee tidak membaca isi layar, dan gambar kamera diproses di HP tanpa dikirim ke mana pun.\n\nLanjutkan?</string>
+    <string name="consent_agree">Saya setuju</string>
+    <string name="consent_cancel">Batal</string>
+    <string name="step_overlay">Tampil di atas app lain</string>
+    <string name="step_overlay_why">Untuk ikon kecil yang menunjukkan status dan menyediakan tombol Stop.</string>
+    <string name="step_overlay_action">Buka pengaturan overlay</string>
+    <string name="step_camera">Kamera</string>
+    <string name="step_camera_why">Kamera depan dipakai untuk membaca tangan. Pratinjau hanya tampil saat kalibrasi.</string>
+    <string name="step_camera_action">Izinkan kamera</string>
+    <string name="step_battery">Baterai dan autostart</string>
+    <string name="step_battery_why">Beberapa HP (Realme, Xiaomi, Oppo) mematikan app di latar belakang. Buka pengaturannya, lepaskan Layzee dari penghematan baterai dan izinkan autostart bila ada, lalu centang di bawah. Layzee tidak bisa memeriksa ini sendiri.</string>
+    <string name="step_battery_action">Pengaturan baterai</string>
+    <string name="step_app_info_action">Info app</string>
+    <string name="step_battery_done">Sudah saya atur</string>
+    <string name="died_hint">Layzee berhenti sendiri tanpa Anda menekan Stop. Kemungkinan sistem mematikannya: periksa lagi langkah baterai dan autostart di bawah.</string>
+    <string name="open_playground">Buka area uji</string>
+    <string name="step_done">✓ %1$s</string>
+    <string name="step_todo">○ %1$s</string>
 </resources>

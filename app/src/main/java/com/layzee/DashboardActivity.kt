@@ -1,8 +1,10 @@
 package com.layzee
 
 import android.Manifest
-import android.content.pm.PackageManager
+import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -10,41 +12,47 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
-import android.graphics.Bitmap
 import android.widget.AbsListView
 import android.widget.BaseAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.ListView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
-import com.layzee.gesture.GestureState
-import com.layzee.gesture.HandFrame
-import com.layzee.pipeline.HandLandmarkerSource
+import com.layzee.setup.Permissions
+import com.layzee.setup.SetupStore
 import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
- * Test screen for now: front camera frame with hand landmarks, the live gesture state and a playground list
- * the virtual finger can scroll. Start and Stop control [LayzeeService], which owns the pipeline; this screen
- * only shows its frames while it is open, and never runs the camera itself.
+ * The permission guide: one checked step per permission, then Start/Stop and the playground. Accessibility,
+ * overlay and camera are re-read every time the screen returns to the front; the battery step is ticked by
+ * the user, since Android cannot report it. It never runs the camera itself (the camera preview only exists
+ * for Calibration); [LayzeeService] owns the pipeline.
  */
-class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
-    private lateinit var landmarks: LandmarkView
-    private lateinit var statusView: TextView
+class DashboardActivity : ComponentActivity() {
+    private lateinit var store: SetupStore
+    private lateinit var stepAccessibility: TextView
+    private lateinit var stepOverlay: TextView
+    private lateinit var stepCamera: TextView
+    private lateinit var stepBattery: TextView
+    private lateinit var batteryDone: CheckBox
+    private lateinit var diedHint: View
     private lateinit var toggle: Button
-    private lateinit var accessibilityHint: View
+    private lateinit var playground: ListView
 
-    // Written on the camera thread, compared there; the UI label is only touched on a change.
-    private var shownState: GestureState? = null
-
-    private companion object {
-        const val IDLE_COLOR = 0xCC555555.toInt()
+    private val closePlayground = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() = showPlayground(false)
     }
 
     private val requestCamera =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) requestNotificationsThenStart() else statusView.setText(R.string.camera_permission_needed)
+            // Denied with "don't ask again" makes the dialog silent; the app's settings page is the way out.
+            if (!granted && !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) openAppInfo()
+            refresh()
         }
 
     // The foreground service runs either way; without this permission its notification is only in the task manager.
@@ -54,59 +62,119 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
-        landmarks = findViewById(R.id.landmarks)
-        statusView = findViewById(R.id.status)
+        store = SetupStore(this)
+        stepAccessibility = findViewById(R.id.step_accessibility)
+        stepOverlay = findViewById(R.id.step_overlay)
+        stepCamera = findViewById(R.id.step_camera)
+        stepBattery = findViewById(R.id.step_battery)
+        batteryDone = findViewById(R.id.battery_done)
+        diedHint = findViewById(R.id.died_hint)
         toggle = findViewById(R.id.toggle)
-        accessibilityHint = findViewById(R.id.accessibility_hint)
+        playground = findViewById(R.id.playground)
+        playground.adapter = PlaygroundAdapter()
+        onBackPressedDispatcher.addCallback(this, closePlayground)
 
-        findViewById<ListView>(R.id.playground).adapter = PlaygroundAdapter()
-        findViewById<Button>(R.id.open_accessibility).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
+        findViewById<Button>(R.id.open_accessibility).setOnClickListener { openAccessibility() }
         findViewById<Button>(R.id.open_overlay_permission).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            openSettings(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         }
+        findViewById<Button>(R.id.request_camera).setOnClickListener {
+            requestCamera.launch(Manifest.permission.CAMERA)
+        }
+        findViewById<Button>(R.id.open_battery).setOnClickListener {
+            openSettings(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+        findViewById<Button>(R.id.open_app_info).setOnClickListener { openAppInfo() }
+        batteryDone.setOnClickListener {
+            store.state = store.state.withBatteryDone(batteryDone.isChecked)
+            refresh()
+        }
+        findViewById<Button>(R.id.open_playground).setOnClickListener { showPlayground(true) }
         toggle.setOnClickListener {
-            when {
-                LayzeeService.running -> LayzeeService.stop(this)
-                hasPermission(Manifest.permission.CAMERA) -> requestNotificationsThenStart()
-                else -> requestCamera.launch(Manifest.permission.CAMERA)
-            }
+            if (LayzeeService.running) LayzeeService.stop(this) else requestNotificationsThenStart()
         }
     }
 
     override fun onStart() {
         super.onStart()
-        LayzeeService.preview = this
+        // A kill by the system leaves no trace except that Layzee should be running and is not.
+        store.state = store.state.reconcile(LayzeeService.running)
         LayzeeService.onRunningChanged = ::refresh
         refresh()
     }
 
+    // Returning from a settings page lands here, so the checks follow what the user just changed.
     override fun onResume() {
         super.onResume()
-        accessibilityHint.visibility =
-            if (LayzeeAccessibilityService.dispatcher == null) View.VISIBLE else View.GONE
+        refresh()
     }
 
-    // The service keeps running; only the test screen stops listening.
     override fun onStop() {
-        LayzeeService.preview = null
         LayzeeService.onRunningChanged = null
         super.onStop()
     }
 
-    // Matches the Off / running state of the service; the live state then comes from onFrame.
+    private fun permissions() = Permissions(
+        accessibility = LayzeeAccessibilityService.dispatcher != null,
+        overlay = Settings.canDrawOverlays(this),
+        camera = hasPermission(Manifest.permission.CAMERA),
+    )
+
     private fun refresh() {
+        val permissions = permissions()
+        val state = store.state
+        bindStep(stepAccessibility, R.string.step_accessibility, permissions.accessibility && state.consentGiven)
+        bindStep(stepOverlay, R.string.step_overlay, permissions.overlay)
+        bindStep(stepCamera, R.string.step_camera, permissions.camera)
+        bindStep(stepBattery, R.string.step_battery, state.batteryDone)
+        batteryDone.isChecked = state.batteryDone
+        diedHint.visibility = if (state.diedUnexpectedly) View.VISIBLE else View.GONE
         val running = LayzeeService.running
         toggle.setText(if (running) R.string.stop else R.string.start)
-        if (!running) {
-            shownState = null
-            statusView.setText(R.string.status_off)
-            statusView.setBackgroundColor(IDLE_COLOR)
-            landmarks.clear()
-        } else if (shownState == null) {
-            statusView.setText(R.string.status_idle)
+        // Stop is always available; Start only once the guide is complete.
+        toggle.isEnabled = running || state.canStart(permissions)
+    }
+
+    private fun bindStep(view: TextView, @StringRes title: Int, done: Boolean) {
+        view.text = getString(if (done) R.string.step_done else R.string.step_todo, getString(title))
+    }
+
+    // The explicit consent (an affirmative tap, remembered) comes before the user is sent to Settings.
+    private fun openAccessibility() {
+        if (store.state.consentGiven) {
+            openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            return
         }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.consent_title)
+            .setMessage(R.string.consent_message)
+            .setPositiveButton(R.string.consent_agree) { _, _ ->
+                store.state = store.state.copy(consentGiven = true)
+                openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .setNegativeButton(R.string.consent_cancel, null)
+            .show()
+    }
+
+    private fun openAppInfo() =
+        openSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+
+    // Some vendor ROMs lack individual settings pages; the app info page always exists.
+    private fun openSettings(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            try {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+            } catch (e: ActivityNotFoundException) {
+                // Nowhere left to send the user.
+            }
+        }
+    }
+
+    private fun showPlayground(show: Boolean) {
+        playground.visibility = if (show) View.VISIBLE else View.GONE
+        closePlayground.isEnabled = show
     }
 
     private fun hasPermission(permission: String) =
@@ -119,31 +187,6 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
             requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             LayzeeService.start(this)
-        }
-    }
-
-    override fun onImage(image: Bitmap) = landmarks.setImage(image)
-
-    override fun onFrame(frame: HandFrame, state: GestureState) {
-        landmarks.update(frame, state == GestureState.PINCH)
-        if (state != shownState) {
-            shownState = state
-            statusView.post {
-                statusView.setBackgroundColor(
-                    when (state) {
-                        GestureState.IDLE -> IDLE_COLOR
-                        GestureState.TRACKING -> 0xCCE0A000.toInt()
-                        GestureState.PINCH -> 0xCC1B9E3E.toInt()
-                    },
-                )
-                statusView.setText(
-                    when (state) {
-                        GestureState.IDLE -> R.string.status_idle
-                        GestureState.TRACKING -> R.string.status_tracking
-                        GestureState.PINCH -> R.string.status_pinch
-                    },
-                )
-            }
         }
     }
 }

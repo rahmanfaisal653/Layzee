@@ -23,6 +23,7 @@ import com.layzee.gesture.HandFrame
 import com.layzee.overlay.Overlay
 import com.layzee.pipeline.CameraPipeline
 import com.layzee.pipeline.HandLandmarkerSource
+import com.layzee.setup.SetupStore
 import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
@@ -57,6 +58,8 @@ class LayzeeService : Service(), LifecycleOwner {
         super.onCreate()
         registry.currentState = Lifecycle.State.STARTED
         running = true
+        // From here until the user's Stop; a start that never gets this far is not a kill.
+        SetupStore(this).let { it.state = it.state.copy(shouldRun = true) }
         onRunningChanged?.invoke()
     }
 
@@ -173,6 +176,7 @@ class LayzeeService : Service(), LifecycleOwner {
         }
 
         fun stop(context: Context) {
+            SetupStore(context).let { it.state = it.state.copy(shouldRun = false) }
             context.stopService(Intent(context, LayzeeService::class.java))
         }
     }
