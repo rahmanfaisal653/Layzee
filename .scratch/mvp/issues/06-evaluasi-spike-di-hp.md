@@ -27,3 +27,4 @@
   - Belum bisa diuji: Instagram/TikTok. Pipeline berhenti di `DashboardActivity.onStop()` saat app lain dibuka dan kamera latar belakang butuh foreground service (tiket 07). Item goresan di app target, durasi fps tinggi, fling per app, dan latensi antar segmen tetap terbuka; latensi juga belum punya angka (log `dispatch` bukan latensi ujung ke ujung).
   - Tiket tetap `ready-for-human` sampai 07 selesai dan uji di Instagram dilakukan.
 - 2026-10-10: Tiket 07 selesai di sisi kode (foreground service), jadi uji di Instagram sudah bisa dilakukan: Start di Dashboard, pindah ke Instagram, lalu pinch. Status tetap `ready-for-human`.
+- 2026-10-10: Pengguna melaporkan pinch = swipe di Instagram berjalan baik (kualitatif, tanpa angka). TikTok belum terpasang, latensi dan item fling/segmen sudah tidak relevan (tidak ada goresan berlanjut lagi). Status tetap `ready-for-human` sampai `spike-findings.md` diisi dan keputusan lanjut/setel/tinjau ditulis.
