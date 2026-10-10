@@ -80,7 +80,7 @@ internal class HandLandmarkerSource(
         return fresh
     }
 
-    /** Sends the bitmap from [bitmapFor] (already filled) to the model. [rotationDegrees] is CameraX's clockwise rotation to upright. */
+    /** Sends the bitmap from [bitmapFor] (already filled) to the model. [rotationDegrees] is CameraX's clockwise rotation to upright (0, 90, 180 or 270). */
     fun submit(rotationDegrees: Int, timestampMs: Long) {
         val image = mpImage ?: return
         val bmp = bitmap ?: return
@@ -88,11 +88,11 @@ internal class HandLandmarkerSource(
         uprightWidth = if (sideways) bmp.height else bmp.width
         uprightHeight = if (sideways) bmp.width else bmp.height
 
-        // CameraX reports the clockwise rotation that makes the image upright; MediaPipe wants it counter-clockwise.
-        val ccw = (360 - rotationDegrees) % 360
-        val slot = ccw / 90
+        // Same direction as CameraX's rotationDegrees (clockwise to upright): MediaPipe negates it into its
+        // NormalizedRect rotation. Reversing it reads the hand upside down.
+        val slot = rotationDegrees / 90
         val options = optionsByRotation[slot]
-            ?: ImageProcessingOptions.builder().setRotationDegrees(ccw).build()
+            ?: ImageProcessingOptions.builder().setRotationDegrees(rotationDegrees).build()
                 .also { optionsByRotation[slot] = it }
 
         if (BuildConfig.DEBUG) startNs[(timestampMs and START_MASK).toInt()] = SystemClock.elapsedRealtimeNanos()

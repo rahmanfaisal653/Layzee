@@ -6,7 +6,7 @@
 
 **Blocked by:** 03 (Gesture engine: swipe), 04 (Kamera + landmark: status di layar)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Accessibility Service dengan izin melakukan gesture bisa diaktifkan manual di pengaturan sistem.
 - [x] Playground: daftar yang bisa di-scroll di dalam app, tanpa tampilan angka.
@@ -17,7 +17,7 @@
 - [x] Pipeline dihentikan di tengah Pinch → jari virtual terangkat; tidak ada goresan menggantung ("jari tertekan").
 - [x] `targetSdk` di atas 29 sehingga sampling gerakan halus, bukan 100 ms patah-patah.
 - [x] Di build debug, waktu dispatch tercatat ke log berdampingan dengan tahap sebelumnya.
-- [ ] Diverifikasi di HP uji: daftar playground bergerak mengikuti pinch dan berhenti saat pinch dilepas.
+- [x] Diverifikasi di HP uji: daftar playground bergerak mengikuti pinch dan berhenti saat pinch dilepas.
 
 ## Comments
 
@@ -34,3 +34,6 @@
     - Di fps rendah, durasi segmen dibatasi 100 ms sehingga jari tertinggal dari tangan.
     - Di luar tiket: banner/tombol Aksesibilitas, `LandmarkView.clear()`, dan `onStop` yang menghentikan pipeline (menjamin jari terangkat saat app keluar dari layar).
     - Tidak ada tes JVM baru: logika dispatcher terikat tipe Android (`Path`, `GestureDescription`).
+- 2026-10-10 (verifikasi): Pengguna menguji di HP uji: fungsi pinch menggulir playground aman (daftar bergerak mengikuti pinch dan berhenti saat dilepas). Tiket ditutup.
+  - Setelah uji, arah rotasi ke MediaPipe diperbaiki: `HandLandmarkerSource.submit` kini mengirim `rotationDegrees` CameraX apa adanya (sebelumnya `360 - rotationDegrees`). Dasarnya bytecode `BaseVisionTaskApi`, yang menegasikan nilai itu menjadi `NormalizedRect.rotation` searah jarum jam; arah terbalik membaca tangan terbalik 180°. Isi playground diganti nama buah (kata Idle/Swipe/Tracking/Pinch sebelumnya membingungkan).
+  - **Masih terbuka (dari tiket 04):** titik landmark di pratinjau masih kurang pas di jari, dan tampilan layar uji perlu dirapikan. Belum ada bukti bahwa perbaikan rotasi menyelesaikan masalah titik; kandidat berikutnya: pratinjau dan analisis tanpa `ViewPort` bersama (crop/FOV beda), asumsi FIT_CENTER di `LandmarkView`, cermin `1 - x`. Dibawa ke tiket/perbaikan terpisah; tidak memengaruhi status pinch maupun swipe.

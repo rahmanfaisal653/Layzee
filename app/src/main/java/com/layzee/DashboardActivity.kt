@@ -169,6 +169,6 @@ private class PlaygroundAdapter : BaseAdapter() {
 
     private companion object {
         const val ROWS = 500
-        val WORDS = arrayOf("Layzee", "Pinch", "Swipe", "Tracking", "Idle", "Jari", "Tangan", "Gulir")
+        val WORDS = arrayOf("Apel", "Jeruk", "Mangga", "Anggur", "Melon", "Pisang", "Nanas", "Semangka")
     }
 }
