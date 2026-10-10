@@ -17,6 +17,7 @@ import android.view.WindowManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import com.layzee.calibration.CalibrationStore
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
@@ -42,16 +43,13 @@ class LayzeeService : Service(), LifecycleOwner {
 
     override val lifecycle: Lifecycle get() = registry
 
-    // Frames go to the Dashboard only while it is open; nothing is drawn or posted otherwise.
+    // The camera image is only shown while calibrating, never here.
     private val forward = object : HandLandmarkerSource.Listener {
         override fun onFrame(frame: HandFrame, state: GestureState) {
             overlay?.setState(state)
-            preview?.onFrame(frame, state)
         }
 
-        override fun onImage(image: Bitmap) {
-            preview?.onImage(image)
-        }
+        override fun onImage(image: Bitmap) = Unit
     }
 
     override fun onCreate() {
@@ -151,7 +149,16 @@ class LayzeeService : Service(), LifecycleOwner {
             width = metrics.widthPixels
             height = metrics.heightPixels
         }
-        return GestureConfig(screenWidth = width, screenHeight = height)
+        // The user's own thresholds; Start is blocked until a calibration exists, the defaults are only a fallback.
+        val calibration = CalibrationStore(this).calibration ?: return GestureConfig(screenWidth = width, screenHeight = height)
+        return GestureConfig(
+            enterRatio = calibration.enterRatio,
+            exitRatio = calibration.exitRatio,
+            fallbackEnterRatio = calibration.fallbackEnterRatio,
+            fallbackExitRatio = calibration.fallbackExitRatio,
+            screenWidth = width,
+            screenHeight = height,
+        )
     }
 
     companion object {
@@ -165,10 +172,6 @@ class LayzeeService : Service(), LifecycleOwner {
 
         /** Called on the main thread whenever [running] changes. Set by the Dashboard while it is open. */
         internal var onRunningChanged: (() -> Unit)? = null
-
-        /** Camera frames and gesture state for the Dashboard's test screen; null when it is not open. */
-        @Volatile
-        internal var preview: HandLandmarkerSource.Listener? = null
 
         /** Start from the Dashboard, while it is in front (a camera service cannot start from the background). */
         fun start(context: Context) {

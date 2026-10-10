@@ -1,7 +1,5 @@
 package com.layzee.gesture
 
-import kotlin.math.sqrt
-
 /**
  * Pure frame-by-frame gesture logic: Idle / Tracking / Pinch, plus the swipe command. No Android types and
  * no allocation per frame.
@@ -23,9 +21,7 @@ class GestureEngine {
 
     private var pendingFrames = 0
     private var apartFrames = 0
-    private var tipRatio = 0f
-    private var fallbackRatio = 0f
-    private var handSize = 0f
+    private val measure = PinchMeasure()
 
     // True from a flick until the fingers have been apart long enough; losing the hand does not clear it.
     private var spent = false
@@ -40,7 +36,7 @@ class GestureEngine {
     fun process(frame: HandFrame, config: GestureConfig, out: GestureOutput) {
         out.command = SwipeCommand.NONE
 
-        if (!frame.handPresent || frame.confidence < config.minConfidence || !measure(frame)) {
+        if (!frame.handPresent || frame.confidence < config.minConfidence || !measure.measure(frame)) {
             reset()
             out.state = state
             return
@@ -49,6 +45,8 @@ class GestureEngine {
         if (state == GestureState.IDLE) state = GestureState.TRACKING
 
         val inPinch = state == GestureState.PINCH
+        val tipRatio = measure.tipRatio
+        val fallbackRatio = measure.fallbackRatio
         val apart = tipRatio > config.exitRatio && fallbackRatio > config.fallbackExitRatio
 
         apartFrames = if (apart) apartFrames + 1 else 0
@@ -86,30 +84,5 @@ class GestureEngine {
         out.x = config.screenWidth / 2f
         out.y = height * config.startYFraction
         out.toY = (out.y - height * config.flickDistanceFraction).coerceAtLeast(0f)
-    }
-
-    /** Fills [tipRatio], [fallbackRatio] and [handSize]; false when the hand is degenerate (zero hand size). */
-    private fun measure(frame: HandFrame): Boolean {
-        val w = frame.frameWidth.toFloat()
-        val h = frame.frameHeight.toFloat()
-        val xs = frame.xs
-        val ys = frame.ys
-
-        handSize = distance(xs, ys, Landmark.WRIST, Landmark.MIDDLE_MCP, w, h)
-        if (handSize < MIN_HAND_SIZE_PX) return false
-
-        tipRatio = distance(xs, ys, Landmark.THUMB_TIP, Landmark.INDEX_TIP, w, h) / handSize
-        fallbackRatio = distance(xs, ys, Landmark.THUMB_TIP, Landmark.INDEX_PIP, w, h) / handSize
-        return true
-    }
-
-    private fun distance(xs: FloatArray, ys: FloatArray, a: Int, b: Int, w: Float, h: Float): Float {
-        val dx = (xs[a] - xs[b]) * w
-        val dy = (ys[a] - ys[b]) * h
-        return sqrt(dx * dx + dy * dy)
-    }
-
-    private companion object {
-        const val MIN_HAND_SIZE_PX = 1e-3f
     }
 }

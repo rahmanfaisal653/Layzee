@@ -9,15 +9,17 @@ class SetupStateTest {
     private val granted = Permissions(accessibility = true, overlay = true, camera = true)
 
     @Test
-    fun startNeedsEveryPermissionTheBatteryStepAndConsent() {
+    fun startNeedsEveryPermissionTheBatteryStepConsentAndCalibration() {
         val ready = SetupState(consentGiven = true, batteryDone = true)
-        assertTrue(ready.canStart(granted))
-        assertFalse(ready.canStart(granted.copy(accessibility = false)))
-        assertFalse(ready.canStart(granted.copy(overlay = false)))
-        assertFalse(ready.canStart(granted.copy(camera = false)))
-        assertFalse(ready.copy(batteryDone = false).canStart(granted))
+        assertTrue(ready.canStart(granted, calibrated = true))
+        assertFalse(ready.canStart(granted.copy(accessibility = false), calibrated = true))
+        assertFalse(ready.canStart(granted.copy(overlay = false), calibrated = true))
+        assertFalse(ready.canStart(granted.copy(camera = false), calibrated = true))
+        assertFalse(ready.copy(batteryDone = false).canStart(granted, calibrated = true))
         // Enabled straight from system Settings: the in-app consent was never given.
-        assertFalse(ready.copy(consentGiven = false).canStart(granted))
+        assertFalse(ready.copy(consentGiven = false).canStart(granted, calibrated = true))
+        // Calibration is required before the first Start.
+        assertFalse(ready.canStart(granted, calibrated = false))
     }
 
     @Test

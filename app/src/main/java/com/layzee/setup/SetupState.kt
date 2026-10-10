@@ -15,7 +15,8 @@ data class SetupState(
     val shouldRun: Boolean = false,
     val diedUnexpectedly: Boolean = false,
 ) {
-    fun canStart(permissions: Permissions) = permissions.all && batteryDone && consentGiven
+    fun canStart(permissions: Permissions, calibrated: Boolean) =
+        permissions.all && batteryDone && consentGiven && calibrated
 
     /** Layzee should be running but is not: the system killed it, so the battery step must be checked again. */
     fun reconcile(running: Boolean) =

@@ -112,6 +112,26 @@
                 android:text="@string/step_battery_done"
                 android:textColor="#000000" />
 
+            <TextView
+                android:id="@+id/step_calibration"
+                style="@style/StepTitle" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/step_calibration_why"
+                android:textColor="#333333" />
+            <TextView
+                android:id="@+id/calibration_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/calibration_stop_first"
+                android:textColor="#B00020"
+                android:visibility="gone" />
+            <Button
+                android:id="@+id/open_calibration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
             <Button
                 android:id="@+id/toggle"
                 android:layout_width="match_parent"
@@ -125,6 +145,54 @@
                 android:text="@string/open_playground" />
         </LinearLayout>
     </ScrollView>
+
+    <!-- Calibration: camera preview with landmarks, the current ask, and restart/close. Back closes it. -->
+    <LinearLayout
+        android:id="@+id/calibration_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FFFFFF"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <com.layzee.LandmarkView
+            android:id="@+id/landmark_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#000000" />
+
+        <TextView
+            android:id="@+id/calibration_prompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="#000000"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/calibration_problem"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#B00020" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/calibration_restart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/calibration_restart" />
+            <Button
+                android:id="@+id/calibration_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/calibration_close" />
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- Playground: a plain scrollable list, no numbers shown. Opened from the guide; Back closes it. -->
     <ListView
