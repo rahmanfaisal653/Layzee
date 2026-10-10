@@ -33,6 +33,7 @@ internal class HandLandmarkerSource(
     context: Context,
     private val config: GestureConfig,
     private val listener: Listener,
+    private val pacer: FramePacer,
     private val dispatcherProvider: () -> SwipeDispatcher?,
 ) {
     interface Listener {
@@ -159,6 +160,10 @@ internal class HandLandmarkerSource(
         }
 
         engine.process(frame, config, output)
+        val appearedAfterMs = pacer.onResult(output.state, ts)
+        if (BuildConfig.DEBUG && appearedAfterMs >= 0) {
+            Log.d("LayzeePacing", "hand seen ${appearedAfterMs} ms after the motion gate opened")
+        }
 
         if (BuildConfig.DEBUG) StageTimer.record(StageTimer.LOGIC, SystemClock.elapsedRealtimeNanos() - t0)
 
