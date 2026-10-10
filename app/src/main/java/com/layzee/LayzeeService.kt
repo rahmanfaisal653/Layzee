@@ -11,6 +11,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import androidx.lifecycle.Lifecycle
@@ -19,6 +20,7 @@ import androidx.lifecycle.LifecycleRegistry
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
+import com.layzee.overlay.Overlay
 import com.layzee.pipeline.CameraPipeline
 import com.layzee.pipeline.HandLandmarkerSource
 import com.layzee.swipe.LayzeeAccessibilityService
@@ -35,12 +37,14 @@ import com.layzee.swipe.LayzeeAccessibilityService
 class LayzeeService : Service(), LifecycleOwner {
     private val registry = LifecycleRegistry(this)
     private var pipeline: CameraPipeline? = null
+    private var overlay: Overlay? = null
 
     override val lifecycle: Lifecycle get() = registry
 
     // Frames go to the Dashboard only while it is open; nothing is drawn or posted otherwise.
     private val forward = object : HandLandmarkerSource.Listener {
         override fun onFrame(frame: HandFrame, state: GestureState) {
+            overlay?.setState(state)
             preview?.onFrame(frame, state)
         }
 
@@ -59,10 +63,12 @@ class LayzeeService : Service(), LifecycleOwner {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground()
         if (pipeline == null) {
+            val config = gestureConfig()
+            showOverlay(config)
             pipeline = CameraPipeline(
                 context = this,
                 lifecycleOwner = this,
-                config = gestureConfig(),
+                config = config,
                 listener = forward,
                 dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
             ).also { it.start() }
@@ -71,12 +77,35 @@ class LayzeeService : Service(), LifecycleOwner {
     }
 
     override fun onDestroy() {
+        overlay?.hide()
+        overlay = null
         pipeline?.release()
         pipeline = null
         registry.currentState = Lifecycle.State.DESTROYED
         running = false
         onRunningChanged?.invoke()
         super.onDestroy()
+    }
+
+    // Without the "display over other apps" permission Layzee still runs; Stop is then only on the Dashboard.
+    private fun showOverlay(config: GestureConfig) {
+        if (!Settings.canDrawOverlays(this)) return
+        val fresh = Overlay(
+            context = this,
+            screenWidth = config.screenWidth,
+            screenHeight = config.screenHeight,
+            onStop = { stop(this) },
+            onOpenDashboard = {
+                startActivity(Intent(this, DashboardActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            },
+        )
+        // The permission can be revoked between the check and the window being added.
+        try {
+            fresh.show()
+            overlay = fresh
+        } catch (e: WindowManager.BadTokenException) {
+            fresh.hide()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

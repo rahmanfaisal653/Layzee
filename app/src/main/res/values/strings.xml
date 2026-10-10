@@ -13,4 +13,6 @@
     <string name="notification_text">Kamera menyala. Buka Layzee untuk menghentikan.</string>
     <string name="debug_open_accessibility">Aksesibilitas</string>
     <string name="accessibility_off">Aktifkan Layzee di pengaturan Aksesibilitas</string>
+    <string name="open_dashboard">Buka dashboard</string>
+    <string name="debug_open_overlay">Overlay</string>
 </resources>

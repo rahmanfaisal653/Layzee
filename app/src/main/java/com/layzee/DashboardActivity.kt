@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -61,6 +62,9 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
         findViewById<ListView>(R.id.playground).adapter = PlaygroundAdapter()
         findViewById<Button>(R.id.open_accessibility).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        findViewById<Button>(R.id.open_overlay_permission).setOnClickListener {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         }
         toggle.setOnClickListener {
             when {

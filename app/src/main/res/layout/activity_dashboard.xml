@@ -28,7 +28,7 @@
             android:textSize="18sp" />
     </FrameLayout>
 
-    <!-- Start/Stop; the Accessibility shortcut is temporary until the permission guide (ticket 10). -->
+    <!-- Start/Stop; the Accessibility and Overlay shortcuts are temporary until the permission guide (ticket 10). -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -46,6 +46,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/debug_open_accessibility" />
+
+        <Button
+            android:id="@+id/open_overlay_permission"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/debug_open_overlay" />
     </LinearLayout>
 
     <TextView
