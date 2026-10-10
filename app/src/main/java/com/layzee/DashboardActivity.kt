@@ -11,6 +11,7 @@ import android.util.DisplayMetrics
 import android.view.View
 import android.view.ViewGroup
 import android.graphics.Bitmap
+import android.widget.AbsListView
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.ListView
@@ -40,6 +41,10 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
 
     // Written on the camera thread, compared there; the UI label is only touched on a change.
     private var shownState: GestureState? = null
+
+    private companion object {
+        const val IDLE_COLOR = 0xCC555555.toInt()
+    }
 
     private val requestCamera =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -93,6 +98,7 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
         pipeline = null
         shownState = null
         statusView.setText(R.string.status_idle)
+        statusView.setBackgroundColor(IDLE_COLOR)
         landmarks.clear()
     }
 
@@ -128,14 +134,16 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
         return GestureConfig(screenWidth = width, screenHeight = height)
     }
 
-    override fun onFrame(frame: HandFrame, state: GestureState, image: Bitmap?, rotationDegrees: Int) {
-        landmarks.update(frame, state == GestureState.PINCH, image, rotationDegrees)
+    override fun onImage(image: Bitmap) = landmarks.setImage(image)
+
+    override fun onFrame(frame: HandFrame, state: GestureState) {
+        landmarks.update(frame, state == GestureState.PINCH)
         if (state != shownState) {
             shownState = state
             statusView.post {
                 statusView.setBackgroundColor(
                     when (state) {
-                        GestureState.IDLE -> 0xCC555555.toInt()
+                        GestureState.IDLE -> IDLE_COLOR
                         GestureState.TRACKING -> 0xCCE0A000.toInt()
                         GestureState.PINCH -> 0xCC1B9E3E.toInt()
                     },
@@ -152,30 +160,25 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
     }
 }
 
-/** A finite list of distinct colored rows, only there to make scrolling visible. */
+/** A finite list of distinct colored bands, only there to make scrolling visible. */
 private class PlaygroundAdapter : BaseAdapter() {
-    override fun getCount() = WORDS.size
-    override fun getItem(position: Int) = WORDS[position]
+    override fun getCount() = ROWS
+    override fun getItem(position: Int) = position
     override fun getItemId(position: Int) = position.toLong()
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val row = (convertView as? TextView) ?: TextView(parent.context).apply {
-            val dp = resources.displayMetrics.density
-            setPadding((24 * dp).toInt(), (28 * dp).toInt(), (24 * dp).toInt(), (28 * dp).toInt())
-            textSize = 22f
-            setTextColor(Color.WHITE)
+        val row = convertView ?: View(parent.context).apply {
+            layoutParams = AbsListView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (ROW_HEIGHT_DP * resources.displayMetrics.density).toInt(),
+            )
         }
-        row.text = getItem(position)
-        row.setBackgroundColor(Color.HSVToColor(floatArrayOf(position * 360f / WORDS.size, 0.55f, 0.55f)))
+        row.setBackgroundColor(Color.HSVToColor(floatArrayOf(position * 360f / ROWS, 0.55f, 0.6f)))
         return row
     }
 
     private companion object {
-        val WORDS = arrayOf(
-            "Apel", "Jeruk", "Mangga", "Anggur", "Melon", "Pisang", "Nanas", "Semangka", "Pepaya", "Jambu",
-            "Durian", "Salak", "Manggis", "Rambutan", "Alpukat", "Lemon", "Kelapa", "Markisa", "Sirsak", "Leci",
-            "Kiwi", "Pir", "Stroberi", "Delima", "Kurma", "Nangka", "Belimbing", "Cempedak", "Duku", "Kesemek",
-            "Ceri", "Persik", "Plum", "Apricot", "Jeruk Bali", "Blewah", "Sawo", "Srikaya", "Buah Naga", "Murbei",
-        )
+        const val ROWS = 40
+        const val ROW_HEIGHT_DP = 80
     }
 }

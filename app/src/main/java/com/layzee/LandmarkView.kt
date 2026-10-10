@@ -11,10 +11,11 @@ import com.layzee.gesture.HandFrame
 import com.layzee.gesture.Landmark
 
 /**
- * Camera test view: draws the camera frame the landmarks were found in, and the 21 landmarks on top.
- * Frame and points come from the same result, so they line up exactly (no separate preview whose crop or
- * delay could differ). The frame arrives sideways by its rotation; it is turned upright here and mirrored,
- * like a selfie. Upright frame and landmarks are fitted centered into the view.
+ * Camera test view: draws the camera frame the model is fed, and the 21 landmarks of the latest result on
+ * top. Frames arrive at camera rate and results at inference rate (about 100 ms behind), so the points
+ * trail the hand slightly while it moves. Both come from the same analysed frames, so there is no crop
+ * mismatch to a separate preview. Frame and points are upright; they are mirrored, like a selfie, and
+ * fitted centered into the view.
  * Keeps its own copies, so the camera threads never share buffers with the UI thread.
  */
 class LandmarkView @JvmOverloads constructor(
@@ -30,7 +31,6 @@ class LandmarkView @JvmOverloads constructor(
     private var image: Bitmap? = null
     private var imageCanvas: Canvas? = null
     private var hasImage = false
-    private var rotation = 0
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.GREEN }
     private val pinchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.RED }
@@ -45,8 +45,23 @@ class LandmarkView @JvmOverloads constructor(
         postInvalidateOnAnimation()
     }
 
-    /** Called from the MediaPipe callback thread. [frame] is the upright landmark data, [source] the sideways camera frame. */
-    internal fun update(frame: HandFrame, pinching: Boolean, source: Bitmap?, rotationDegrees: Int) {
+    /** Called from the analysis thread for every camera frame; [source] is upright. */
+    internal fun setImage(source: Bitmap) {
+        synchronized(lock) {
+            var own = image
+            if (own == null || own.width != source.width || own.height != source.height) {
+                own = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+                image = own
+                imageCanvas = Canvas(own)
+            }
+            imageCanvas!!.drawBitmap(source, 0f, 0f, null)
+            hasImage = true
+        }
+        postInvalidateOnAnimation()
+    }
+
+    /** Called from the MediaPipe callback thread with the upright landmarks of the latest result. */
+    internal fun update(frame: HandFrame, pinching: Boolean) {
         synchronized(lock) {
             handVisible = frame.handPresent
             if (handVisible) {
@@ -54,17 +69,6 @@ class LandmarkView @JvmOverloads constructor(
                 System.arraycopy(frame.ys, 0, ys, 0, Landmark.COUNT)
             }
             highlight = pinching
-            if (source != null) {
-                var own = image
-                if (own == null || own.width != source.width || own.height != source.height) {
-                    own = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
-                    image = own
-                    imageCanvas = Canvas(own)
-                }
-                imageCanvas!!.drawBitmap(source, 0f, 0f, null)
-                rotation = rotationDegrees
-                hasImage = true
-            }
         }
         postInvalidateOnAnimation()
     }
@@ -73,19 +77,17 @@ class LandmarkView @JvmOverloads constructor(
         synchronized(lock) {
             val frame = image
             if (!hasImage || frame == null) return
-            val sideways = rotation == 90 || rotation == 270
-            val uprightW = (if (sideways) frame.height else frame.width).toFloat()
-            val uprightH = (if (sideways) frame.width else frame.height).toFloat()
+            val uprightW = frame.width.toFloat()
+            val uprightH = frame.height.toFloat()
             val scale = minOf(width / uprightW, height / uprightH)
             val cx = width / 2f
             val cy = height / 2f
 
-            // Raw frame -> rotate clockwise to upright -> mirror -> fit into the view.
+            // Mirror like a selfie, fit into the view.
             val saved = canvas.save()
             canvas.translate(cx, cy)
             canvas.scale(-scale, scale)
-            canvas.rotate(rotation.toFloat())
-            canvas.translate(-frame.width / 2f, -frame.height / 2f)
+            canvas.translate(-uprightW / 2f, -uprightH / 2f)
             canvas.drawBitmap(frame, 0f, 0f, imagePaint)
             canvas.restoreToCount(saved)
 
