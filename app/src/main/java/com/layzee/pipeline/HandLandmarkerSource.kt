@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.os.SystemClock
+import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
@@ -174,8 +175,11 @@ internal class HandLandmarkerSource(
     }
 
     private fun dispatch(dispatcher: SwipeDispatcher) {
+        if (BuildConfig.DEBUG) {
+            Log.d("LayzeeSwipe", "${output.command} x=${output.x.toInt()} y=${output.y.toInt()} v=${output.velocityY.toInt()}")
+        }
         when (output.command) {
-            SwipeCommand.START -> dispatcher.start(output.x, output.y)
+            SwipeCommand.START -> dispatcher.start(output.x, output.y, output.toY)
             SwipeCommand.MOVE -> dispatcher.move(output.x, output.y)
             SwipeCommand.LIFT -> dispatcher.lift(output.y, output.velocityY, config.screenHeight - 1f)
             SwipeCommand.CANCEL -> dispatcher.cancel()

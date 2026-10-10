@@ -9,8 +9,8 @@ package com.layzee.gesture
  *
  * Swipe: the virtual finger starts at (screenWidth / 2, screenHeight * startYFraction) and moves
  * [swipeRatio] screen heights per hand size of vertical hand movement. The One Euro parameters work on
- * movement in hand sizes, so they do not depend on camera distance. The virtual finger only touches down once
- * the hand has moved [touchSlop] hand sizes; a pinch that stays still never touches the screen.
+ * movement in hand sizes, so they do not depend on camera distance. On touch-down the finger at once moves
+ * [touchJumpFraction] of the screen height up, so apps read the touch as a drag, never a tap or a press-and-hold.
  */
 class GestureConfig(
     val enterRatio: Float = 0.25f,
@@ -24,7 +24,7 @@ class GestureConfig(
     val screenHeight: Int = 2400,
     val startYFraction: Float = 0.65f,
     val swipeRatio: Float = 0.3f,
-    val touchSlop: Float = 0.1f,
+    val touchJumpFraction: Float = 0.0125f,
     val filterMinCutoff: Float = 1.5f,
     val filterBeta: Float = 1.0f,
     val filterDerivativeCutoff: Float = 1.0f,
@@ -36,7 +36,7 @@ class GestureConfig(
         require(screenWidth > 0 && screenHeight > 0) { "screen size must be positive" }
         require(startYFraction in 0f..1f) { "startYFraction must be within 0..1" }
         require(swipeRatio > 0f) { "swipeRatio must be positive" }
-        require(touchSlop >= 0f) { "touchSlop must not be negative" }
+        require(touchJumpFraction in 0f..0.1f) { "touchJumpFraction must be within 0..0.1" }
         require(filterMinCutoff > 0f && filterDerivativeCutoff > 0f && filterBeta >= 0f) { "invalid filter parameters" }
     }
 }

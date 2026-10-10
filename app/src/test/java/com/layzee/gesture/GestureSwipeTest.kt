@@ -13,6 +13,9 @@ class GestureSwipeTest {
     private val startX = screenW / 2f
     private val startY = screenH * 0.65f
 
+    /** The finger rests here once settled: the touch-down jump (1.25% of the screen) up from the start point. */
+    private val restY = startY - screenH * 0.0125f
+
     private fun config(swipeRatio: Float = ratio) = GestureConfig(
         screenWidth = screenW,
         screenHeight = screenH,
@@ -73,29 +76,11 @@ class GestureSwipeTest {
 
     private fun open(cy: Float = 240f) = feed(cy = cy, tipGap = 1.0f)
 
-    /** Opens and pinches until the state is Pinch. The finger has not touched the screen yet. */
-    private fun pinch(cy: Float = 240f, handSize: Float = 100f) {
+    /** Opens, then pinches until START is emitted. */
+    private fun startSwipe(cy: Float = 240f, handSize: Float = 100f) {
         open(cy)
         assertEquals(SwipeCommand.NONE, feed(cy = cy, handSize = handSize))
-        assertEquals(SwipeCommand.NONE, feed(cy = cy, handSize = handSize))
-        assertEquals(GestureState.PINCH, out.state)
-    }
-
-    /** Moves the hand down in small steps from [cy] until the finger touches down; returns the START frame. */
-    private fun moveUntilTouchDown(cy: Float = 240f, handSize: Float = 100f): SwipeCommand {
-        var y = cy
-        repeat(30) {
-            y += 0.04f * handSize
-            if (feed(cy = y, handSize = handSize) == SwipeCommand.START) return SwipeCommand.START
-        }
-        return out.command
-    }
-
-    /** Pinches, touches down by moving the hand a little, then brings it back and lets the filter settle. */
-    private fun startSwipe(cy: Float = 240f, handSize: Float = 100f) {
-        pinch(cy, handSize)
-        assertEquals(SwipeCommand.START, moveUntilTouchDown(cy, handSize))
-        repeat(40) { feed(cy = cy, handSize = handSize) }
+        assertEquals(SwipeCommand.START, feed(cy = cy, handSize = handSize))
     }
 
     /** Releases the pinch (two frames) and returns the second frame's command. */
@@ -118,70 +103,28 @@ class GestureSwipeTest {
     }
 
     @Test
-    fun pinchEntersPinchStateWithoutTouchingTheScreen() {
+    fun pinchStartsAtFixedPointAfterDebounce() {
         open()
         assertEquals(SwipeCommand.NONE, feed(cy = 100f))
-        assertEquals(SwipeCommand.NONE, feed(cy = 100f))
-        assertEquals(GestureState.PINCH, out.state)
+        assertEquals(SwipeCommand.START, feed(cy = 100f))
+        assertEquals(startX, out.x, 0.01f)
+        assertEquals(startY, out.y, 0.01f)
     }
 
     @Test
-    fun stillPinchNeverTouchesTheScreen() {
-        pinch()
-        repeat(60) { assertEquals(SwipeCommand.NONE, feed()) }
-    }
-
-    @Test
-    fun stillPinchReleasedEmitsNoLift() {
-        pinch()
-        repeat(30) { feed() }
-        assertEquals(SwipeCommand.NONE, release())
-        assertEquals(GestureState.TRACKING, out.state)
-    }
-
-    @Test
-    fun jitterBelowTheTouchSlopNeverTouchesTheScreen() {
-        pinch()
-        repeat(60) { i -> assertEquals(SwipeCommand.NONE, feed(cy = 240f + if (i % 2 == 0) 2f else -2f)) }
-    }
-
-    @Test
-    fun handLostBeforeTouchDownEmitsNoLift() {
-        pinch()
+    fun firstSegmentStartsAtTheFixedPointAndEndsAtTheJump() {
+        open()
         feed()
-        assertEquals(SwipeCommand.NONE, feedNoHand())
-        assertEquals(GestureState.IDLE, out.state)
+        assertEquals(SwipeCommand.START, feed())
+        assertEquals(startY, out.y, 0.01f)
+        assertEquals(restY, out.toY, 0.01f)
     }
 
     @Test
-    fun screenTouchBeforeTouchDownEmitsNoCancel() {
-        pinch()
-        assertEquals(SwipeCommand.NONE, feed(touched = true))
-        assertEquals(GestureState.TRACKING, out.state)
-    }
-
-    @Test
-    fun movingTheHandTouchesDownAtTheFixedPoint() {
-        pinch(cy = 100f)
-        assertEquals(SwipeCommand.START, moveUntilTouchDown(cy = 100f))
+    fun startPointDoesNotDependOnWhereTheHandIs() {
+        startSwipe(cy = 400f)
         assertEquals(startX, out.x, 0.01f)
         assertEquals(startY, out.y, 0.01f)
-    }
-
-    @Test
-    fun touchDownPointDoesNotDependOnWhereTheHandIs() {
-        pinch(cy = 400f)
-        moveUntilTouchDown(cy = 400f)
-        assertEquals(startX, out.x, 0.01f)
-        assertEquals(startY, out.y, 0.01f)
-    }
-
-    @Test
-    fun movesFollowTouchDownFromTheSameFinger() {
-        pinch()
-        moveUntilTouchDown()
-        assertEquals(SwipeCommand.MOVE, feed(cy = 300f))
-        assertTrue(out.y > startY)
     }
 
     @Test
@@ -218,17 +161,17 @@ class GestureSwipeTest {
         startSwipe(cy = 240f)
         val up = settledY(cy = 140f)
         val back = settledY(cy = 240f)
-        assertTrue(up < startY - 100f)
-        assertEquals(startY, back, 5f)
+        assertTrue(up < restY - 100f)
+        assertEquals(restY, back, 5f)
         val down = settledY(cy = 340f)
-        assertTrue(down > startY + 100f)
+        assertTrue(down > restY + 100f)
     }
 
     @Test
     fun fingerMovesRatioTimesScreenHeightPerHandSize() {
         startSwipe(cy = 240f)
         val y = settledY(cy = 140f) // exactly one hand size up
-        assertEquals(startY - pxPerHandSize, y, pxPerHandSize * 0.02f)
+        assertEquals(restY - pxPerHandSize, y, pxPerHandSize * 0.02f)
     }
 
     @Test
@@ -247,7 +190,7 @@ class GestureSwipeTest {
             cfg = config(swipeRatio)
             engine = GestureEngine()
             startSwipe(cy = 240f)
-            startY - settledY(cy = 190f) // half a hand size up
+            restY - settledY(cy = 190f) // half a hand size up
         }
         assertEquals(distances[0] * 2f, distances[1], distances[1] * 0.02f)
     }
@@ -258,7 +201,7 @@ class GestureSwipeTest {
         repeat(40) { i -> feed(cx = 320f + i * 5f) } // drifts 200 px sideways
         assertEquals(SwipeCommand.MOVE, out.command)
         assertEquals(startX, out.x, 0.01f)
-        assertEquals(startY, out.y, 1f)
+        assertEquals(restY, out.y, 1f)
     }
 
     @Test
@@ -389,9 +332,8 @@ class GestureSwipeTest {
         repeat(3) { feed() }
         assertEquals(SwipeCommand.NONE, release())
         assertEquals(SwipeCommand.NONE, feed())
-        assertEquals(SwipeCommand.NONE, feed())
+        assertEquals(SwipeCommand.START, feed())
         assertEquals(GestureState.PINCH, out.state)
-        assertEquals(SwipeCommand.START, moveUntilTouchDown())
     }
 
     @Test
@@ -403,9 +345,7 @@ class GestureSwipeTest {
         assertEquals(GestureState.TRACKING, out.state)
         release()
         feed()
-        feed()
-        assertEquals(GestureState.PINCH, out.state)
-        assertEquals(SwipeCommand.START, moveUntilTouchDown())
+        assertEquals(SwipeCommand.START, feed())
     }
 
     @Test
@@ -413,8 +353,7 @@ class GestureSwipeTest {
         open()
         assertEquals(SwipeCommand.NONE, feed(tipGap = 1.0f, touched = true))
         assertEquals(SwipeCommand.NONE, feed())
-        assertEquals(SwipeCommand.NONE, feed())
-        assertEquals(GestureState.PINCH, out.state)
+        assertEquals(SwipeCommand.START, feed())
     }
 
     @Test
@@ -435,8 +374,7 @@ class GestureSwipeTest {
         release(cy = 140f)
         open(cy = 140f)
         feed(cy = 140f)
-        feed(cy = 140f)
-        assertEquals(SwipeCommand.START, moveUntilTouchDown(cy = 140f))
+        assertEquals(SwipeCommand.START, feed(cy = 140f))
         assertEquals(startY, out.y, 0.01f)
     }
 }

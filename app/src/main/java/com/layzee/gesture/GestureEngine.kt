@@ -1,6 +1,5 @@
 package com.layzee.gesture
 
-import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
@@ -13,12 +12,11 @@ import kotlin.math.sqrt
  * - Debounce: a change must hold for N consecutive frames before the state follows.
  * - Hand lost or low confidence leaves Pinch at once, with no grace period.
  *
- * Swipe: entering Pinch only arms the virtual finger. Once the filtered hand movement exceeds the touch slop,
- * START touches down at the fixed start point; each later frame with new data emits MOVE;
+ * Swipe: entering Pinch emits START at the fixed start point; the first segment already moves the finger a
+ * small jump up ([GestureOutput.toY]), so it never reads as a tap or a press-and-hold. Each later frame with new data emits MOVE;
  * vertical pinch-point movement is accumulated in hand sizes, smoothed by a One Euro filter, then scaled
- * by the swipe ratio. Leaving Pinch after a START emits LIFT at the last position with the last speed (before
- * a START there is nothing to lift: a still pinch never touches the screen). A real screen
- * touch during a touched Pinch emits CANCEL and returns to Tracking; Pinch cannot start again until the fingers
+ * by the swipe ratio. Leaving Pinch emits LIFT at the last position with the last speed. A real screen
+ * touch during Pinch emits CANCEL and returns to Tracking; Pinch cannot start again until the fingers
  * have been apart.
  */
 class GestureEngine {
@@ -41,10 +39,7 @@ class GestureEngine {
     private var lastX = 0f
     private var lastY = 0f
     private var velocityY = 0f
-
-    // The virtual finger touches the screen only once the hand has moved: a finger that lands and stays
-    // still is a tap or a press-and-hold, which apps like Reels turn into pause.
-    private var fingerDown = false
+    private var touchJump = 0f
 
     /** Back to Idle. [awaitingRelease] survives: losing the hand does not count as releasing the pinch. */
     private fun reset() {
@@ -102,7 +97,7 @@ class GestureEngine {
                     lift(out)
                 } else {
                     state = GestureState.PINCH
-                    start(frame, config)
+                    start(frame, config, out)
                 }
             }
             // Frames still waiting out a release are not followed: the fingers are opening, so the
@@ -111,15 +106,19 @@ class GestureEngine {
         out.state = state
     }
 
-    private fun start(frame: HandFrame, config: GestureConfig) {
+    private fun start(frame: HandFrame, config: GestureConfig, out: GestureOutput) {
         prevPinchY = pinchY(frame)
         rawDisplacement = 0f
         filter.reset(0f)
         lastTimestampMs = frame.timestampMs
         lastX = config.screenWidth / 2f
+        touchJump = config.screenHeight * config.touchJumpFraction
         lastY = config.screenHeight * config.startYFraction
         velocityY = 0f
-        fingerDown = false
+        emit(out, SwipeCommand.START)
+        // The first segment already carries the jump, so the touch is a drag from its first moment.
+        lastY -= touchJump
+        out.toY = lastY
     }
 
     private fun move(frame: HandFrame, config: GestureConfig, out: GestureOutput) {
@@ -138,17 +137,7 @@ class GestureEngine {
         val screenH = config.screenHeight.toFloat()
         val startY = screenH * config.startYFraction
         // Hand up (image y decreasing) moves the finger up; keep it on screen.
-        val fingerY = (startY + displacement * config.swipeRatio * screenH).coerceIn(0f, screenH - 1f)
-
-        if (!fingerDown) {
-            if (abs(displacement) < config.touchSlop) return
-            // Touch down at the fixed start point; the next frames carry the finger from there.
-            fingerDown = true
-            emit(out, SwipeCommand.START)
-            lastY = fingerY
-            velocityY = 0f
-            return
-        }
+        val fingerY = (startY - touchJump + displacement * config.swipeRatio * screenH).coerceIn(0f, screenH - 1f)
 
         val instantVelocity = (fingerY - lastY) / dt
         velocityY += VELOCITY_SMOOTHING * (instantVelocity - velocityY)
@@ -156,18 +145,15 @@ class GestureEngine {
         emit(out, SwipeCommand.MOVE)
     }
 
-    // A pinch that never moved the hand never touched the screen, so there is nothing to lift or cancel.
     private fun lift(out: GestureOutput) {
-        if (fingerDown) emit(out, SwipeCommand.LIFT)
-        fingerDown = false
+        emit(out, SwipeCommand.LIFT)
     }
 
     private fun cancel(out: GestureOutput) {
         state = GestureState.TRACKING
         pendingFrames = 0
         awaitingRelease = true
-        if (fingerDown) emit(out, SwipeCommand.CANCEL)
-        fingerDown = false
+        emit(out, SwipeCommand.CANCEL)
     }
 
     private fun emit(out: GestureOutput, command: SwipeCommand) {

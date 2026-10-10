@@ -15,6 +15,10 @@ class GestureOutput {
     var y = 0f
         internal set
 
+    /** Where the first segment of the stroke ends, in screen pixels; valid for START. */
+    var toY = 0f
+        internal set
+
     /** Vertical speed of the virtual finger in px/s (positive = down); valid for LIFT. */
     var velocityY = 0f
         internal set

@@ -5,6 +5,8 @@ import android.accessibilityservice.GestureDescription
 import android.accessibilityservice.GestureDescription.StrokeDescription
 import android.graphics.Path
 import android.os.SystemClock
+import android.util.Log
+import com.layzee.BuildConfig
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -47,6 +49,7 @@ class SwipeDispatcher(private val service: AccessibilityService) {
     private var startPending = false
     private var startX = 0f
     private var startY = 0f
+    private var startToY = 0f
 
     private val callback = object : AccessibilityService.GestureResultCallback() {
         override fun onCompleted(description: GestureDescription) {
@@ -57,6 +60,7 @@ class SwipeDispatcher(private val service: AccessibilityService) {
         }
 
         override fun onCancelled(description: GestureDescription) {
+            if (BuildConfig.DEBUG) Log.d("LayzeeSwipe", "segment cancelled, live stroke=${stroke != null}")
             synchronized(lock) {
                 inFlight = false
                 if (stroke != null) {
@@ -72,12 +76,13 @@ class SwipeDispatcher(private val service: AccessibilityService) {
     /** True once if the real screen was touched since the last call; the engine turns it into CANCEL. */
     fun consumeTouched(): Boolean = touched.getAndSet(false)
 
-    /** Virtual finger touches down at ([x], [y]). */
-    fun start(x: Float, y: Float) {
+    /** Virtual finger touches down at ([x], [y]) and at once moves to [toY] within the same segment. */
+    fun start(x: Float, y: Float, toY: Float) {
         synchronized(lock) {
             if (stroke != null) return // the engine lifts or cancels before starting again
             startX = x
             startY = y
+            startToY = toY
             startPending = true
             flush()
         }
@@ -159,11 +164,12 @@ class SwipeDispatcher(private val service: AccessibilityService) {
         startPending = false
         path.rewind()
         path.moveTo(startX, startY)
+        if (startToY != startY) path.lineTo(startX, startToY)
         val first = StrokeDescription(path, 0, START_MS, true)
         if (send(first, now)) {
             stroke = first
             endX = startX
-            endY = startY
+            endY = startToY
         }
     }
 
@@ -199,6 +205,7 @@ class SwipeDispatcher(private val service: AccessibilityService) {
     private fun send(segment: StrokeDescription, now: Long): Boolean {
         val gesture = GestureDescription.Builder().addStroke(segment).build()
         val accepted = service.dispatchGesture(gesture, callback, null)
+        if (BuildConfig.DEBUG && !accepted) Log.d("LayzeeSwipe", "dispatchGesture rejected")
         if (accepted) {
             inFlight = true
             lastDispatchMs = now
@@ -209,7 +216,7 @@ class SwipeDispatcher(private val service: AccessibilityService) {
     }
 
     private companion object {
-        const val START_MS = 10L
+        const val START_MS = 16L
         const val MIN_SEGMENT_MS = 8L
         const val MAX_SEGMENT_MS = 100L
         const val LIFT_TAIL_MS = 16L
