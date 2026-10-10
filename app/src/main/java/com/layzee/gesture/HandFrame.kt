@@ -22,6 +22,9 @@ class HandFrame {
     var frameWidth = 0
     var frameHeight = 0
 
+    /** True when the real screen was touched since the previous frame (reported by the dispatcher). */
+    var screenTouched = false
+
     internal val xs = FloatArray(Landmark.COUNT)
     internal val ys = FloatArray(Landmark.COUNT)
 
