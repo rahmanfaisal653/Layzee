@@ -13,8 +13,8 @@ class GestureSwipeTest {
     private val startX = screenW / 2f
     private val startY = screenH * 0.65f
 
-    /** The finger rests here once settled: the touch-down jump (1.25% of the screen) up from the start point. */
-    private val restY = startY - screenH * 0.0125f
+    /** The finger rests here once settled: the touch-down jump (5% of the screen) up from the start point. */
+    private val restY = startY - screenH * 0.05f
 
     private fun config(swipeRatio: Float = ratio) = GestureConfig(
         screenWidth = screenW,
@@ -237,7 +237,7 @@ class GestureSwipeTest {
         var lagPx = 0f
         for (i in 1..50) {
             feed(cy = 240f - i * stepPx)
-            lagPx = (startY - i * stepPx / 100f * pxPerHandSize) - out.y
+            lagPx = (restY - i * stepPx / 100f * pxPerHandSize) - out.y
         }
         val speedPxPerSec = stepPx / 100f * pxPerHandSize / 0.033f
         // Finger is at most ~150 ms behind the raw hand position.

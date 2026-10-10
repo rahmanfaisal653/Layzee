@@ -24,7 +24,7 @@ class GestureConfig(
     val screenHeight: Int = 2400,
     val startYFraction: Float = 0.65f,
     val swipeRatio: Float = 0.3f,
-    val touchJumpFraction: Float = 0.0125f,
+    val touchJumpFraction: Float = 0.05f,
     val filterMinCutoff: Float = 1.5f,
     val filterBeta: Float = 1.0f,
     val filterDerivativeCutoff: Float = 1.0f,
