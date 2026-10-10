@@ -1,28 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="#000000"
+    android:orientation="vertical">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/preview"
+    <!-- Camera test header; kept short so the virtual finger's start point lands on the playground list. -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="200dp">
 
-    <com.layzee.LandmarkView
-        android:id="@+id/landmarks"
+        <androidx.camera.view.PreviewView
+            android:id="@+id/preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <com.layzee.LandmarkView
+            android:id="@+id/landmarks"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="32dp"
+            android:background="#99000000"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+    </FrameLayout>
+
+    <!-- Temporary debug controls; ticket 07 (service Start/Stop) and 10 (permission guide) replace them. -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/toggle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/open_accessibility"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/debug_open_accessibility" />
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/status"
-        android:layout_width="wrap_content"
+        android:id="@+id/accessibility_hint"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="48dp"
-        android:background="#99000000"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="8dp"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp" />
-</FrameLayout>
+        android:background="#FFB300"
+        android:padding="8dp"
+        android:text="@string/accessibility_off"
+        android:textColor="#000000" />
+
+    <!-- Playground: a plain scrollable list, no numbers shown. -->
+    <ListView
+        android:id="@+id/playground"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@null" />
+</LinearLayout>

@@ -5,4 +5,9 @@
     <string name="status_tracking">Tracking</string>
     <string name="status_pinch">Pinch</string>
     <string name="camera_permission_needed">Izin kamera dibutuhkan</string>
+    <string name="accessibility_description">Layzee memakai izin ini hanya untuk menyentuh dan menggeser layar atas nama gesture pinch Anda. Layzee tidak membaca isi layar, dan gambar kamera diproses di HP tanpa dikirim ke mana pun.</string>
+    <string name="debug_start">Mulai (debug)</string>
+    <string name="debug_stop">Stop (debug)</string>
+    <string name="debug_open_accessibility">Aksesibilitas</string>
+    <string name="accessibility_off">Aktifkan Layzee di pengaturan Aksesibilitas</string>
 </resources>

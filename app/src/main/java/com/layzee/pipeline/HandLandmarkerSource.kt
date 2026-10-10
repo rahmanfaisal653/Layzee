@@ -17,6 +17,8 @@ import com.layzee.gesture.GestureOutput
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
 import com.layzee.gesture.Landmark
+import com.layzee.gesture.SwipeCommand
+import com.layzee.swipe.SwipeDispatcher
 
 /**
  * MediaPipe Hand Landmarker in LIVE_STREAM mode (async, one hand) feeding the gesture engine.
@@ -29,6 +31,7 @@ internal class HandLandmarkerSource(
     context: Context,
     private val config: GestureConfig,
     private val listener: Listener,
+    private val dispatcherProvider: () -> SwipeDispatcher?,
 ) {
     interface Listener {
         /** Called on the MediaPipe callback thread for every result. [frame] is only valid during the call. */
@@ -98,6 +101,8 @@ internal class HandLandmarkerSource(
 
     fun close() {
         closed = true
+        // Stopped mid-Pinch: lift the virtual finger so no stroke is left pressed.
+        dispatcherProvider()?.release()
         landmarker.close()
         mpImage?.close()
     }
@@ -114,7 +119,8 @@ internal class HandLandmarkerSource(
         frame.timestampMs = ts
         frame.frameWidth = uprightWidth
         frame.frameHeight = uprightHeight
-        frame.screenTouched = false
+        val dispatcher = dispatcherProvider()
+        frame.screenTouched = dispatcher?.consumeTouched() ?: false
 
         val hands = result.landmarks()
         val handedness = result.handedness()
@@ -134,7 +140,23 @@ internal class HandLandmarkerSource(
         engine.process(frame, config, output)
 
         if (BuildConfig.DEBUG) StageTimer.record(StageTimer.LOGIC, SystemClock.elapsedRealtimeNanos() - t0)
+
+        if (!closed && dispatcher != null && output.command != SwipeCommand.NONE) {
+            val d0 = if (BuildConfig.DEBUG) SystemClock.elapsedRealtimeNanos() else 0L
+            dispatch(dispatcher)
+            if (BuildConfig.DEBUG) StageTimer.record(StageTimer.DISPATCH, SystemClock.elapsedRealtimeNanos() - d0)
+        }
         listener.onFrame(frame, output.state)
+    }
+
+    private fun dispatch(dispatcher: SwipeDispatcher) {
+        when (output.command) {
+            SwipeCommand.START -> dispatcher.start(output.x, output.y)
+            SwipeCommand.MOVE -> dispatcher.move(output.x, output.y)
+            SwipeCommand.LIFT -> dispatcher.lift(output.y, output.velocityY, config.screenHeight - 1f)
+            SwipeCommand.CANCEL -> dispatcher.cancel()
+            SwipeCommand.NONE -> Unit
+        }
     }
 
     private companion object {

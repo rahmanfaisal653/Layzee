@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.layzee.BuildConfig
 import com.layzee.gesture.GestureConfig
+import com.layzee.swipe.SwipeDispatcher
 import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -35,6 +36,7 @@ internal class CameraPipeline(
     private val previewView: PreviewView,
     config: GestureConfig,
     listener: HandLandmarkerSource.Listener,
+    dispatcherProvider: () -> SwipeDispatcher?,
 ) {
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
         Thread(r, "layzee-analysis")
@@ -50,7 +52,7 @@ internal class CameraPipeline(
     private var provider: ProcessCameraProvider? = null
 
     init {
-        analysisExecutor.execute { source = HandLandmarkerSource(context, config, listener) }
+        analysisExecutor.execute { source = HandLandmarkerSource(context, config, listener, dispatcherProvider) }
     }
 
     fun start() {

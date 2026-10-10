@@ -28,6 +28,12 @@ class LandmarkView @JvmOverloads constructor(
     private val pinchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.RED }
     private var thumbIndexHighlight = false
 
+    /** Hides the landmarks (pipeline stopped). */
+    fun clear() {
+        synchronized(lock) { visible = false }
+        postInvalidateOnAnimation()
+    }
+
     /** Called from the camera thread. */
     internal fun update(frame: HandFrame, highlight: Boolean) {
         synchronized(lock) {

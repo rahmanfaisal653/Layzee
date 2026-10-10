@@ -13,10 +13,11 @@ internal object StageTimer {
     const val CONVERT = 1 // RGBA buffer -> reused bitmap
     const val INFERENCE = 2 // detectAsync -> result callback
     const val LOGIC = 3 // gesture engine
+    const val DISPATCH = 4 // dispatcher call for a swipe command (only frames that send one)
 
     private const val TAG = "LayzeeTiming"
     private const val WINDOW = 60
-    private val NAMES = arrayOf("camera", "convert", "inference", "logic")
+    private val NAMES = arrayOf("camera", "convert", "inference", "logic", "dispatch")
 
     private val sumNs = LongArray(NAMES.size)
     private val count = IntArray(NAMES.size)
