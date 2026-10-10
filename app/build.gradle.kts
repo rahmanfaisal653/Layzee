@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.layzee"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.layzee"
@@ -34,6 +34,11 @@ android {
         }
     }
 
+    buildFeatures {
+        // BuildConfig.DEBUG gates the per-stage timing log; R8 drops it from release builds.
+        buildConfig = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -41,5 +46,11 @@ android {
 }
 
 dependencies {
+    implementation("androidx.activity:activity:1.10.1")
+    implementation("androidx.camera:camera-core:1.6.2")
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
+    implementation("com.google.mediapipe:tasks-vision:1.1.0")
     testImplementation("junit:junit:4.13.2")
 }

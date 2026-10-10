@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Layzee</string>
+    <string name="status_idle">Idle</string>
+    <string name="status_tracking">Tracking</string>
+    <string name="status_pinch">Pinch</string>
+    <string name="camera_permission_needed">Izin kamera dibutuhkan</string>
 </resources>
