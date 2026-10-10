@@ -8,12 +8,7 @@
     <!-- Camera test header; kept short so the virtual finger's start point lands on the playground list. -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="200dp">
-
-        <androidx.camera.view.PreviewView
-            android:id="@+id/preview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+        android:layout_height="220dp">
 
         <com.layzee.LandmarkView
             android:id="@+id/landmarks"

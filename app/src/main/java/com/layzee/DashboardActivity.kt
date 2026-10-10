@@ -10,13 +10,13 @@ import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.View
 import android.view.ViewGroup
+import android.graphics.Bitmap
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
@@ -26,7 +26,7 @@ import com.layzee.pipeline.HandLandmarkerSource
 import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
- * Test screen for now: front camera preview, hand landmarks, the live gesture state and a playground list
+ * Test screen for now: front camera frame with hand landmarks, the live gesture state and a playground list
  * the virtual finger can scroll. A temporary debug button starts and stops the pipeline (ticket 07
  * replaces it with the foreground service). The pipeline is stopped whenever the screen leaves the
  * foreground, which lifts a pressed virtual finger.
@@ -101,13 +101,9 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
 
     private fun startPipeline() {
         if (pipeline != null) return
-        // LandmarkView assumes the frame is fitted, not cropped.
-        val preview = findViewById<PreviewView>(R.id.preview)
-        preview.scaleType = PreviewView.ScaleType.FIT_CENTER
         pipeline = CameraPipeline(
             context = this,
             lifecycleOwner = this,
-            previewView = preview,
             config = gestureConfig(),
             listener = this,
             dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
@@ -132,11 +128,18 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
         return GestureConfig(screenWidth = width, screenHeight = height)
     }
 
-    override fun onFrame(frame: HandFrame, state: GestureState) {
-        landmarks.update(frame, state == GestureState.PINCH)
+    override fun onFrame(frame: HandFrame, state: GestureState, image: Bitmap?, rotationDegrees: Int) {
+        landmarks.update(frame, state == GestureState.PINCH, image, rotationDegrees)
         if (state != shownState) {
             shownState = state
             statusView.post {
+                statusView.setBackgroundColor(
+                    when (state) {
+                        GestureState.IDLE -> 0xCC555555.toInt()
+                        GestureState.TRACKING -> 0xCCE0A000.toInt()
+                        GestureState.PINCH -> 0xCC1B9E3E.toInt()
+                    },
+                )
                 statusView.setText(
                     when (state) {
                         GestureState.IDLE -> R.string.status_idle
@@ -149,10 +152,10 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
     }
 }
 
-/** Colored rows with words, only there to make scrolling visible. */
+/** A finite list of distinct colored rows, only there to make scrolling visible. */
 private class PlaygroundAdapter : BaseAdapter() {
-    override fun getCount() = ROWS
-    override fun getItem(position: Int) = WORDS[position % WORDS.size]
+    override fun getCount() = WORDS.size
+    override fun getItem(position: Int) = WORDS[position]
     override fun getItemId(position: Int) = position.toLong()
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
@@ -163,12 +166,16 @@ private class PlaygroundAdapter : BaseAdapter() {
             setTextColor(Color.WHITE)
         }
         row.text = getItem(position)
-        row.setBackgroundColor(Color.HSVToColor(floatArrayOf((position * 37 % 360).toFloat(), 0.55f, 0.55f)))
+        row.setBackgroundColor(Color.HSVToColor(floatArrayOf(position * 360f / WORDS.size, 0.55f, 0.55f)))
         return row
     }
 
     private companion object {
-        const val ROWS = 500
-        val WORDS = arrayOf("Apel", "Jeruk", "Mangga", "Anggur", "Melon", "Pisang", "Nanas", "Semangka")
+        val WORDS = arrayOf(
+            "Apel", "Jeruk", "Mangga", "Anggur", "Melon", "Pisang", "Nanas", "Semangka", "Pepaya", "Jambu",
+            "Durian", "Salak", "Manggis", "Rambutan", "Alpukat", "Lemon", "Kelapa", "Markisa", "Sirsak", "Leci",
+            "Kiwi", "Pir", "Stroberi", "Delima", "Kurma", "Nangka", "Belimbing", "Cempedak", "Duku", "Kesemek",
+            "Ceri", "Persik", "Plum", "Apricot", "Jeruk Bali", "Blewah", "Sawo", "Srikaya", "Buah Naga", "Murbei",
+        )
     }
 }

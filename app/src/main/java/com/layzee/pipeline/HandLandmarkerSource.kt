@@ -2,6 +2,7 @@ package com.layzee.pipeline
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.SystemClock
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
@@ -34,8 +35,12 @@ internal class HandLandmarkerSource(
     private val dispatcherProvider: () -> SwipeDispatcher?,
 ) {
     interface Listener {
-        /** Called on the MediaPipe callback thread for every result. [frame] is only valid during the call. */
-        fun onFrame(frame: HandFrame, state: GestureState)
+        /**
+         * Called on the MediaPipe callback thread for every result. [frame] and [image] are only valid
+         * during the call. [image] is the very camera frame the landmarks were found in (null if it is
+         * no longer available), sideways by [rotationDegrees] clockwise: the frame is not rotated upright.
+         */
+        fun onFrame(frame: HandFrame, state: GestureState, image: Bitmap?, rotationDegrees: Int)
     }
 
     private val engine = GestureEngine()
@@ -52,6 +57,14 @@ internal class HandLandmarkerSource(
     // Rotation and size of the frames in flight: written by submit(), read by onResult().
     @Volatile private var uprightWidth = 0
     @Volatile private var uprightHeight = 0
+
+    // The last few submitted frames, so a (late) result is shown over the frame it belongs to. Only the
+    // dashboard test screen reads them; ticket 07 decides when to skip the copy.
+    private val shown = arrayOfNulls<Bitmap>(SHOWN_SLOTS)
+    private val shownCanvas = arrayOfNulls<Canvas>(SHOWN_SLOTS)
+    private val shownTimestamp = LongArray(SHOWN_SLOTS) { -1L }
+    private val shownRotation = IntArray(SHOWN_SLOTS)
+    private var shownNext = 0
 
     // detectAsync start time per frame, indexed by timestamp, for the debug inference timing.
     private val startNs = LongArray(START_SLOTS)
@@ -95,8 +108,24 @@ internal class HandLandmarkerSource(
             ?: ImageProcessingOptions.builder().setRotationDegrees(rotationDegrees).build()
                 .also { optionsByRotation[slot] = it }
 
+        rememberFrame(bmp, rotationDegrees, timestampMs)
+
         if (BuildConfig.DEBUG) startNs[(timestampMs and START_MASK).toInt()] = SystemClock.elapsedRealtimeNanos()
         landmarker.detectAsync(image, options, timestampMs)
+    }
+
+    private fun rememberFrame(source: Bitmap, rotationDegrees: Int, timestampMs: Long) {
+        val slot = shownNext
+        shownNext = (shownNext + 1) % SHOWN_SLOTS
+        var copy = shown[slot]
+        if (copy == null || copy.width != source.width || copy.height != source.height) {
+            copy = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+            shown[slot] = copy
+            shownCanvas[slot] = Canvas(copy)
+        }
+        shownCanvas[slot]!!.drawBitmap(source, 0f, 0f, null)
+        shownRotation[slot] = rotationDegrees
+        shownTimestamp[slot] = timestampMs // last: marks the slot as holding this frame
     }
 
     fun close() {
@@ -146,7 +175,10 @@ internal class HandLandmarkerSource(
             dispatch(dispatcher)
             if (BuildConfig.DEBUG) StageTimer.record(StageTimer.DISPATCH, SystemClock.elapsedRealtimeNanos() - d0)
         }
-        listener.onFrame(frame, output.state)
+
+        var slot = -1
+        for (i in 0 until SHOWN_SLOTS) if (shownTimestamp[i] == ts) slot = i
+        listener.onFrame(frame, output.state, if (slot >= 0) shown[slot] else null, if (slot >= 0) shownRotation[slot] else 0)
     }
 
     private fun dispatch(dispatcher: SwipeDispatcher) {
@@ -162,6 +194,7 @@ internal class HandLandmarkerSource(
     private companion object {
         const val MODEL_ASSET = "hand_landmarker.task"
         const val MIN_CONFIDENCE = 0.5f
+        const val SHOWN_SLOTS = 4
         const val START_SLOTS = 8
         const val START_MASK = (START_SLOTS - 1).toLong()
     }

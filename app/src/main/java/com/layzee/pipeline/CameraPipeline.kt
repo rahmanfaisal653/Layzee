@@ -7,12 +7,10 @@ import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.layzee.BuildConfig
@@ -23,7 +21,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
- * Front camera -> hand landmarker -> gesture engine. Preview and analysis are bound to [lifecycleOwner],
+ * Front camera -> hand landmarker -> gesture engine. Analysis is bound to [lifecycleOwner],
  * so the camera runs only while the owner is started.
  *
  * Analysis: low resolution, RGBA_8888 straight from CameraX (no manual YUV conversion), only the latest
@@ -33,7 +31,6 @@ import java.util.concurrent.Executors
 internal class CameraPipeline(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
-    private val previewView: PreviewView,
     config: GestureConfig,
     listener: HandLandmarkerSource.Listener,
     dispatcherProvider: () -> SwipeDispatcher?,
@@ -62,11 +59,6 @@ internal class CameraPipeline(
             val cameraProvider = future.get()
             provider = cameraProvider
 
-            val preview = Preview.Builder()
-                .setResolutionSelector(selector())
-                .build()
-                .also { it.surfaceProvider = previewView.surfaceProvider }
-
             val analysis = ImageAnalysis.Builder()
                 .setResolutionSelector(selector())
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -76,7 +68,7 @@ internal class CameraPipeline(
 
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
-                lifecycleOwner, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis,
+                lifecycleOwner, CameraSelector.DEFAULT_FRONT_CAMERA, analysis,
             )
         }, ContextCompat.getMainExecutor(context))
     }
