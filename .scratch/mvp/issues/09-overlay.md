@@ -6,7 +6,7 @@
 
 **Blocked by:** 07 (Foreground service dan Start/Stop)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Overlay muncul saat Layzee Start dan hilang saat Off, sebagai satu View kecil lewat `WindowManager`.
 - [x] Warna overlay mengikuti status Idle / Tracking / Pinch.
@@ -15,7 +15,7 @@
 - [x] "Stop" membuat Layzee Off sepenuhnya (kamera mati, overlay hilang); "Buka dashboard" membuka Dashboard.
 - [x] Overlay tidak menampilkan pratinjau kamera dan tidak punya tombol Start.
 - [x] Overlay yang menempel di tepi tidak menghalangi titik awal swipe di tengah layar.
-- [ ] Diverifikasi di HP uji saat Instagram/TikTok di depan.
+- [x] Diverifikasi di HP uji saat Instagram/TikTok di depan.
 
 ## Comments
 
