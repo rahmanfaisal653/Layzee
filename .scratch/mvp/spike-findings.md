@@ -23,21 +23,23 @@ Dibaca lewat `adb` pada 2026-10-10.
 
 | Batas awal | Hasil | Status |
 |---|---|---|
-| Pinch terdeteksi benar ≥ 95% (cahaya normal, 30-60 cm) | | BELUM DIUJI |
+| Pinch terdeteksi benar ≥ 95% (cahaya normal, 30-60 cm) | Dilaporkan aman di playground, tanpa angka | Lolos (kualitatif) |
 | Pinch sampai layar bergerak ≤ 150 ms | | BELUM DIUJI |
 | Pinch dilepas sampai gerak berhenti ≤ 100 ms | | BELUM DIUJI |
-| Pinch palsu ≤ 1 kali per 5 menit saat Tracking | | BELUM DIUJI |
-| Tidak melambat atau panas mengganggu setelah 15 menit | | BELUM DIUJI |
+| Pinch palsu ≤ 1 kali per 5 menit saat Tracking | Dilaporkan aman di playground, tanpa hitungan | Lolos (kualitatif) |
+| Tidak melambat atau panas mengganggu setelah 15 menit | Dilaporkan aman (hanya di app Layzee) | Lolos (kualitatif) |
 
 Latensi: `adb logcat -s LayzeeTiming`. Catatan dari tiket 05: waktu `dispatch` di log hanya durasi pemanggilan `dispatchGesture`, bukan waktu sampai layar bergerak, jadi latensi pinch-sampai-layar-bergerak perlu cara ukur lain (mis. rekam layar + kamera, atau tambah log di sisi playground).
 
 ## Pinch: sudut dan pencahayaan
 
-BELUM DIUJI. Catat per kondisi (sudut HP, cahaya, jarak, jumlah percobaan, jumlah terdeteksi benar).
+Dilaporkan pengguna aman di playground, tanpa rincian per kondisi. Kalau mau lebih tegas, catat per kondisi (sudut HP, cahaya, jarak, jumlah percobaan, jumlah terdeteksi benar).
 
 ## Goresan di app target
 
-BELUM DIUJI. Per app (Instagram, TikTok): mulus atau tidak, swipe cepat mengganti page, swipe pelan dan pendek tidak mengganti page.
+BELUM DIUJI: pipeline mati saat app lain dibuka (berhenti di `DashboardActivity.onStop()`, kamera latar belakang butuh foreground service tiket 07). Uji di Instagram/TikTok menunggu 07. Di playground goresan dilaporkan mulus.
+
+Rencana: Per app (Instagram, TikTok): mulus atau tidak, swipe cepat mengganti page, swipe pelan dan pendek tidak mengganti page.
 
 Sebelum uji: arah swipe harus dicek ulang. Setelah perbaikan rotasi di tiket 04, tangan naik harus membuat konten naik (lihat komentar verifikasi tiket 05).
 
