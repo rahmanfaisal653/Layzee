@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.DisplayMetrics
 import android.view.View
 import android.view.ViewGroup
 import android.graphics.Bitmap
@@ -19,25 +18,21 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
-import com.layzee.pipeline.CameraPipeline
 import com.layzee.pipeline.HandLandmarkerSource
 import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
  * Test screen for now: front camera frame with hand landmarks, the live gesture state and a playground list
- * the virtual finger can scroll. A temporary debug button starts and stops the pipeline (ticket 07
- * replaces it with the foreground service). The pipeline is stopped whenever the screen leaves the
- * foreground, which lifts a pressed virtual finger.
+ * the virtual finger can scroll. Start and Stop control [LayzeeService], which owns the pipeline; this screen
+ * only shows its frames while it is open, and never runs the camera itself.
  */
 class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
     private lateinit var landmarks: LandmarkView
     private lateinit var statusView: TextView
     private lateinit var toggle: Button
     private lateinit var accessibilityHint: View
-    private var pipeline: CameraPipeline? = null
 
     // Written on the camera thread, compared there; the UI label is only touched on a change.
     private var shownState: GestureState? = null
@@ -48,16 +43,18 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
 
     private val requestCamera =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startPipeline() else statusView.setText(R.string.camera_permission_needed)
-            updateToggle()
+            if (granted) requestNotificationsThenStart() else statusView.setText(R.string.camera_permission_needed)
         }
+
+    // The foreground service runs either way; without this permission its notification is only in the task manager.
+    private val requestNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { LayzeeService.start(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
         landmarks = findViewById(R.id.landmarks)
         statusView = findViewById(R.id.status)
-        statusView.setText(R.string.status_idle)
         toggle = findViewById(R.id.toggle)
         accessibilityHint = findViewById(R.id.accessibility_hint)
 
@@ -67,13 +64,18 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
         }
         toggle.setOnClickListener {
             when {
-                pipeline != null -> stopPipeline()
-                hasCameraPermission() -> startPipeline()
+                LayzeeService.running -> LayzeeService.stop(this)
+                hasPermission(Manifest.permission.CAMERA) -> requestNotificationsThenStart()
                 else -> requestCamera.launch(Manifest.permission.CAMERA)
             }
-            updateToggle()
         }
-        updateToggle()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        LayzeeService.preview = this
+        LayzeeService.onRunningChanged = ::refresh
+        refresh()
     }
 
     override fun onResume() {
@@ -82,56 +84,38 @@ class DashboardActivity : ComponentActivity(), HandLandmarkerSource.Listener {
             if (LayzeeAccessibilityService.dispatcher == null) View.VISIBLE else View.GONE
     }
 
-    // Leaving the foreground ends the debug run (and lifts a pressed virtual finger); Start again to resume.
+    // The service keeps running; only the test screen stops listening.
     override fun onStop() {
-        stopPipeline()
-        updateToggle()
+        LayzeeService.preview = null
+        LayzeeService.onRunningChanged = null
         super.onStop()
     }
 
-    private fun updateToggle() {
-        toggle.setText(if (pipeline != null) R.string.debug_stop else R.string.debug_start)
-    }
-
-    private fun stopPipeline() {
-        pipeline?.release()
-        pipeline = null
-        shownState = null
-        statusView.setText(R.string.status_idle)
-        statusView.setBackgroundColor(IDLE_COLOR)
-        landmarks.clear()
-    }
-
-    private fun hasCameraPermission() =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-
-    private fun startPipeline() {
-        if (pipeline != null) return
-        pipeline = CameraPipeline(
-            context = this,
-            lifecycleOwner = this,
-            config = gestureConfig(),
-            listener = this,
-            dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
-        ).also { it.start() }
-    }
-
-    // The virtual finger works in real display pixels (including system bars), not app-window pixels.
-    private fun gestureConfig(): GestureConfig {
-        val width: Int
-        val height: Int
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val bounds = windowManager.maximumWindowMetrics.bounds
-            width = bounds.width()
-            height = bounds.height()
-        } else {
-            val metrics = DisplayMetrics()
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.getRealMetrics(metrics)
-            width = metrics.widthPixels
-            height = metrics.heightPixels
+    // Matches the Off / running state of the service; the live state then comes from onFrame.
+    private fun refresh() {
+        val running = LayzeeService.running
+        toggle.setText(if (running) R.string.stop else R.string.start)
+        if (!running) {
+            shownState = null
+            statusView.setText(R.string.status_off)
+            statusView.setBackgroundColor(IDLE_COLOR)
+            landmarks.clear()
+        } else if (shownState == null) {
+            statusView.setText(R.string.status_idle)
         }
-        return GestureConfig(screenWidth = width, screenHeight = height)
+    }
+
+    private fun hasPermission(permission: String) =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun requestNotificationsThenStart() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !hasPermission(Manifest.permission.POST_NOTIFICATIONS)
+        ) {
+            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            LayzeeService.start(this)
+        }
     }
 
     override fun onImage(image: Bitmap) = landmarks.setImage(image)

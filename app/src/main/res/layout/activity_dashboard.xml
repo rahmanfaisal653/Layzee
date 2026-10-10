@@ -28,7 +28,7 @@
             android:textSize="18sp" />
     </FrameLayout>
 
-    <!-- Temporary debug controls; ticket 07 (service Start/Stop) and 10 (permission guide) replace them. -->
+    <!-- Start/Stop; the Accessibility shortcut is temporary until the permission guide (ticket 10). -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
