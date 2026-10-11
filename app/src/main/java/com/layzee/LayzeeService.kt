@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.os.Build
@@ -32,6 +34,9 @@ import com.layzee.swipe.LayzeeAccessibilityService
  * Android shows its notification.
  *
  * The camera is bound to this service's own lifecycle, which is STARTED for as long as the service lives.
+ * While the screen is off the pipeline is released (camera, model and conversion stop); the service,
+ * notification and overlay stay, and a new pipeline starts at Idle when the screen turns on. This is not Off
+ * and not a new state.
  * A flick is one short gesture, so stopping the service never leaves a stroke hanging. Not sticky: a restart
  * without the Dashboard in front could not reopen the camera anyway.
  */
@@ -41,6 +46,15 @@ class LayzeeService : Service(), LifecycleOwner {
     private var overlay: Overlay? = null
 
     override val lifecycle: Lifecycle get() = registry
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> releasePipeline()
+                Intent.ACTION_SCREEN_ON -> startPipeline()
+            }
+        }
+    }
 
     // The camera image is only shown on the test screen, never here.
     private val forward = object : HandLandmarkerSource.Listener {
@@ -58,29 +72,44 @@ class LayzeeService : Service(), LifecycleOwner {
         // From here until the user's Stop; a start that never gets this far is not a kill.
         SetupStore(this).let { it.state = it.state.copy(shouldRun = true) }
         onRunningChanged?.invoke()
+        registerReceiver(
+            screenReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+            },
+        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground()
-        if (pipeline == null) {
-            val config = gestureConfig()
-            showOverlay(config)
-            pipeline = CameraPipeline(
-                context = this,
-                lifecycleOwner = this,
-                config = config,
-                listener = forward,
-                dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
-            ).also { it.start() }
-        }
+        if (overlay == null) showOverlay(gestureConfig())
+        startPipeline()
         return START_NOT_STICKY
     }
 
-    override fun onDestroy() {
-        overlay?.hide()
-        overlay = null
+    private fun startPipeline() {
+        if (pipeline != null) return
+        overlay?.setState(GestureState.IDLE)
+        pipeline = CameraPipeline(
+            context = this,
+            lifecycleOwner = this,
+            config = gestureConfig(),
+            listener = forward,
+            dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
+        ).also { it.start() }
+    }
+
+    private fun releasePipeline() {
         pipeline?.release()
         pipeline = null
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(screenReceiver)
+        overlay?.hide()
+        overlay = null
+        releasePipeline()
         registry.currentState = Lifecycle.State.DESTROYED
         running = false
         onRunningChanged?.invoke()
