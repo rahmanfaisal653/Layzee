@@ -44,4 +44,14 @@ class SetupStateTest {
         assertFalse(fixed.diedUnexpectedly)
         assertTrue(died.withBatteryDone(false).diedUnexpectedly)
     }
+
+    @Test
+    fun mainScreenOnlyOnceSetupIsCompleteOrWhileRunning() {
+        val ready = SetupState(consentGiven = true, batteryDone = true)
+        assertTrue(ready.showsMain(granted, running = false))
+        assertFalse(SetupState().showsMain(granted, running = false))
+        assertFalse(ready.showsMain(granted.copy(camera = false), running = false))
+        // A permission revoked while Layzee runs must not hide Stop.
+        assertTrue(SetupState().showsMain(granted.copy(accessibility = false), running = true))
+    }
 }

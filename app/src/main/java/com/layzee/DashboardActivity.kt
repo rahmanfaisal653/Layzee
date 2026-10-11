@@ -5,26 +5,25 @@ import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
 import android.widget.BaseAdapter
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.ListView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
@@ -36,19 +35,24 @@ import com.layzee.setup.SetupStore
 import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
- * The permission guide: one checked step per permission, then Start/Stop and the pinch test screen.
- * Accessibility, overlay and camera are re-read every time the screen returns to the front; the battery step
- * is ticked by the user, since Android cannot report it. The camera runs here only on the test screen
+ * Two screens in one: until setup is complete the permission guide (a card per step, each with a shortcut to
+ * its system setting); afterwards the main screen (live status label, Start/Stop, pinch test, how to use)
+ * with the same cards below as permission shortcuts. The live status label follows [LayzeeService.onStateChanged],
+ * no polling. Accessibility, overlay and camera are re-read every time the screen returns to the front; the
+ * battery step is ticked by the user, since Android cannot report it. The camera runs here only on the test screen
  * (preview with landmarks, the live state, and a list a pinch scrolls), and only while that screen is open and
  * Layzee is Off; otherwise [LayzeeService] owns the pipeline.
  */
 class DashboardActivity : ComponentActivity() {
     private lateinit var store: SetupStore
-    private lateinit var stepAccessibility: TextView
-    private lateinit var stepOverlay: TextView
-    private lateinit var stepCamera: TextView
-    private lateinit var stepBattery: TextView
-    private lateinit var batteryDone: CheckBox
+    private lateinit var stepAccessibility: StepCard
+    private lateinit var stepOverlay: StepCard
+    private lateinit var stepCamera: StepCard
+    private lateinit var stepBattery: StepCard
+    private lateinit var intro: View
+    private lateinit var mainGroup: View
+    private lateinit var stepsTitle: TextView
+    private lateinit var statusLabel: TextView
     private lateinit var diedHint: View
     private lateinit var toggle: Button
     private lateinit var playground: ListView
@@ -72,7 +76,7 @@ class DashboardActivity : ComponentActivity() {
             landmarkView.update(frame, state == GestureState.PINCH)
             if (state != shownState) {
                 shownState = state
-                mainHandler.post { if (testing) testState.setText(stateLabel(state)) }
+                mainHandler.post { if (testing) bindStatus(testState, state) }
             }
         }
 
@@ -102,12 +106,31 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
         store = SetupStore(this)
-        stepAccessibility = findViewById(R.id.step_accessibility)
-        stepOverlay = findViewById(R.id.step_overlay)
-        stepCamera = findViewById(R.id.step_camera)
-        stepBattery = findViewById(R.id.step_battery)
-        batteryDone = findViewById(R.id.battery_done)
+        intro = findViewById(R.id.intro)
+        mainGroup = findViewById(R.id.main_group)
+        stepsTitle = findViewById(R.id.steps_title)
+        statusLabel = findViewById(R.id.status_label)
         diedHint = findViewById(R.id.died_hint)
+        findViewById<TextView>(R.id.about_version).text = getString(R.string.about_version, BuildConfig.VERSION_NAME)
+        val steps = findViewById<ViewGroup>(R.id.steps)
+        stepAccessibility = StepCard(
+            steps, R.string.step_accessibility, R.string.step_accessibility_why, R.string.step_accessibility_action,
+        ) { openAccessibility() }
+        stepOverlay = StepCard(
+            steps, R.string.step_overlay, R.string.step_overlay_why, R.string.step_overlay_action,
+        ) { openSettings(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
+        stepCamera = StepCard(
+            steps, R.string.step_camera, R.string.step_camera_why, R.string.step_camera_action,
+        ) { requestCamera.launch(Manifest.permission.CAMERA) }
+        stepBattery = StepCard(
+            steps, R.string.step_battery, R.string.step_battery_why, R.string.step_battery_action,
+        ) { openSettings(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+        stepBattery.showSecondAction(R.string.step_app_info_action) { openAppInfo() }
+        stepBattery.check.visibility = View.VISIBLE
+        stepBattery.check.setOnClickListener {
+            store.state = store.state.withBatteryDone(stepBattery.check.isChecked)
+            refresh()
+        }
         toggle = findViewById(R.id.toggle)
         playground = findViewById(R.id.playground)
         playground.adapter = PlaygroundAdapter()
@@ -118,21 +141,6 @@ class DashboardActivity : ComponentActivity() {
         landmarkView = findViewById(R.id.landmark_view)
         testState = findViewById(R.id.test_state)
 
-        findViewById<Button>(R.id.open_accessibility).setOnClickListener { openAccessibility() }
-        findViewById<Button>(R.id.open_overlay_permission).setOnClickListener {
-            openSettings(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-        }
-        findViewById<Button>(R.id.request_camera).setOnClickListener {
-            requestCamera.launch(Manifest.permission.CAMERA)
-        }
-        findViewById<Button>(R.id.open_battery).setOnClickListener {
-            openSettings(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-        }
-        findViewById<Button>(R.id.open_app_info).setOnClickListener { openAppInfo() }
-        batteryDone.setOnClickListener {
-            store.state = store.state.withBatteryDone(batteryDone.isChecked)
-            refresh()
-        }
         openTest.setOnClickListener {
             if (hasPermission(Manifest.permission.CAMERA)) {
                 openTest()
@@ -152,6 +160,7 @@ class DashboardActivity : ComponentActivity() {
         // A kill by the system leaves no trace except that Layzee should be running and is not.
         store.state = store.state.reconcile(LayzeeService.running)
         LayzeeService.onRunningChanged = ::refresh
+        LayzeeService.onStateChanged = { mainHandler.post { refreshStatus() } }
         refresh()
     }
 
@@ -164,6 +173,7 @@ class DashboardActivity : ComponentActivity() {
     override fun onStop() {
         closeTest() // the preview and the camera exist only while the Dashboard is in front
         LayzeeService.onRunningChanged = null
+        LayzeeService.onStateChanged = null
         super.onStop()
     }
 
@@ -176,23 +186,29 @@ class DashboardActivity : ComponentActivity() {
     private fun refresh() {
         val permissions = permissions()
         val state = store.state
-        bindStep(stepAccessibility, R.string.step_accessibility, permissions.accessibility && state.consentGiven)
-        bindStep(stepOverlay, R.string.step_overlay, permissions.overlay)
-        bindStep(stepCamera, R.string.step_camera, permissions.camera)
-        bindStep(stepBattery, R.string.step_battery, state.batteryDone)
-        batteryDone.isChecked = state.batteryDone
+        stepAccessibility.setDone(permissions.accessibility && state.consentGiven)
+        stepOverlay.setDone(permissions.overlay)
+        stepCamera.setDone(permissions.camera)
+        stepBattery.setDone(state.batteryDone)
+        stepBattery.check.isChecked = state.batteryDone
         diedHint.visibility = if (state.diedUnexpectedly) View.VISIBLE else View.GONE
         val running = LayzeeService.running
+        val main = state.showsMain(permissions, running)
+        mainGroup.visibility = if (main) View.VISIBLE else View.GONE
+        intro.visibility = if (main) View.GONE else View.VISIBLE
+        stepsTitle.setText(if (main) R.string.permissions_title else R.string.setup_title)
         toggle.setText(if (running) R.string.stop else R.string.start)
-        // Stop is always available; Start only once the guide is complete.
-        toggle.isEnabled = running || state.canStart(permissions)
+        toggle.setBackgroundResource(if (running) R.drawable.bg_button_secondary else R.drawable.bg_button_primary)
+        toggle.setTextColor(getColorStateList(if (running) R.color.button_secondary_text else R.color.button_primary_text))
         // The front camera is Layzee's while it runs; the test screen needs it for itself.
         openTest.isEnabled = !running
         testHint.visibility = if (running) View.VISIBLE else View.GONE
+        refreshStatus()
     }
 
-    private fun bindStep(view: TextView, @StringRes title: Int, done: Boolean) {
-        view.text = getString(if (done) R.string.step_done else R.string.step_todo, getString(title))
+    // Off when the service is gone; otherwise the state the service last reported (Idle until its first frame).
+    private fun refreshStatus() {
+        bindStatus(statusLabel, if (LayzeeService.running) LayzeeService.current ?: GestureState.IDLE else null)
     }
 
     // The explicit consent (an affirmative tap, remembered) comes before the user is sent to Settings.
@@ -233,7 +249,7 @@ class DashboardActivity : ComponentActivity() {
         testPanel.visibility = View.VISIBLE
         testBack.isEnabled = true
         shownState = null
-        testState.setText(stateLabel(GestureState.IDLE))
+        bindStatus(testState, GestureState.IDLE)
         testing = true
         val metrics = resources.displayMetrics
         testPipeline = CameraPipeline(
@@ -258,11 +274,16 @@ class DashboardActivity : ComponentActivity() {
         refresh()
     }
 
-    @StringRes
-    private fun stateLabel(state: GestureState) = when (state) {
-        GestureState.IDLE -> R.string.state_idle
-        GestureState.TRACKING -> R.string.state_tracking
-        GestureState.PINCH -> R.string.state_pinch
+    /** The status label: a colored dot (the overlay's palette) and the state name; null is Off. */
+    private fun bindStatus(view: TextView, state: GestureState?) {
+        val (label, color) = when (state) {
+            null -> R.string.state_off to R.color.status_off
+            GestureState.IDLE -> R.string.state_idle to R.color.status_idle
+            GestureState.TRACKING -> R.string.state_tracking to R.color.status_tracking
+            GestureState.PINCH -> R.string.state_pinch to R.color.status_pinch
+        }
+        view.setText(label)
+        view.compoundDrawableTintList = ColorStateList.valueOf(getColor(color))
     }
 
     private fun hasPermission(permission: String) =
@@ -279,20 +300,25 @@ class DashboardActivity : ComponentActivity() {
     }
 }
 
-/** A finite list of distinct colored bands, only there to make scrolling visible. */
+/** A finite list of numbered rows in two alternating shades, only there to make scrolling visible. */
 private class PlaygroundAdapter : BaseAdapter() {
     override fun getCount() = ROWS
     override fun getItem(position: Int) = position
     override fun getItemId(position: Int) = position.toLong()
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val row = convertView ?: View(parent.context).apply {
+        val context = parent.context
+        val row = convertView as? TextView ?: TextView(context).apply {
             layoutParams = AbsListView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 (ROW_HEIGHT_DP * resources.displayMetrics.density).toInt(),
             )
+            gravity = Gravity.CENTER
+            textSize = 18f
+            setTextColor(context.getColor(R.color.text_secondary))
         }
-        row.setBackgroundColor(Color.HSVToColor(floatArrayOf(position * 360f / ROWS, 0.55f, 0.6f)))
+        row.text = (position + 1).toString()
+        row.setBackgroundColor(context.getColor(if (position % 2 == 0) R.color.card else R.color.bg))
         return row
     }
 

@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF">
+    android:fitsSystemWindows="true">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -18,118 +18,119 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/app_name"
-                android:textColor="#000000"
-                android:textSize="28sp" />
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
 
+            <!-- Setup state only: what Layzee does, and that the steps below come first. -->
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/guide_intro"
-                android:textColor="#333333" />
+                android:id="@+id/intro"
+                style="@style/LayzeeBody"
+                android:layout_marginTop="4dp"
+                android:text="@string/guide_intro" />
 
             <!-- Shown only when Layzee was found dead without the user's Stop. -->
             <TextView
                 android:id="@+id/died_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/LayzeeBody"
                 android:layout_marginTop="12dp"
-                android:background="#FFB300"
-                android:padding="8dp"
+                android:background="@drawable/bg_card_warn"
+                android:padding="16dp"
                 android:text="@string/died_hint"
-                android:textColor="#000000"
+                android:textColor="@color/text_primary"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/step_accessibility"
-                style="@style/StepTitle" />
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/step_accessibility_why"
-                android:textColor="#333333" />
-            <Button
-                android:id="@+id/open_accessibility"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/step_accessibility_action" />
-
-            <TextView
-                android:id="@+id/step_overlay"
-                style="@style/StepTitle" />
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/step_overlay_why"
-                android:textColor="#333333" />
-            <Button
-                android:id="@+id/open_overlay_permission"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/step_overlay_action" />
-
-            <TextView
-                android:id="@+id/step_camera"
-                style="@style/StepTitle" />
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/step_camera_why"
-                android:textColor="#333333" />
-            <Button
-                android:id="@+id/request_camera"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/step_camera_action" />
-
-            <TextView
-                android:id="@+id/step_battery"
-                style="@style/StepTitle" />
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/step_battery_why"
-                android:textColor="#333333" />
+            <!-- Main state: setup is complete, or Layzee is running. -->
             <LinearLayout
+                android:id="@+id/main_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <Button
-                    android:id="@+id/open_battery"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/step_battery_action" />
-                <Button
-                    android:id="@+id/open_app_info"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/step_app_info_action" />
-            </LinearLayout>
-            <CheckBox
-                android:id="@+id/battery_done"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/step_battery_done"
-                android:textColor="#000000" />
+                android:orientation="vertical"
+                android:visibility="gone">
 
-            <Button
-                android:id="@+id/toggle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp" />
+                <LinearLayout style="@style/LayzeeCard">
+                    <TextView
+                        android:id="@+id/status_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:drawableStart="@drawable/bg_status_dot"
+                        android:drawablePadding="10dp"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/toggle"
+                        style="@style/LayzeeButtonPrimary"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginTop="16dp"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/LayzeeSectionTitle"
+                    android:text="@string/howto_title" />
+                <LinearLayout style="@style/LayzeeCard">
+                    <TextView
+                        style="@style/LayzeeBody"
+                        android:text="@string/howto_1" />
+                    <TextView
+                        style="@style/LayzeeBody"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/howto_2" />
+                    <TextView
+                        style="@style/LayzeeBody"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/howto_3" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Outside main_group: the test needs only the camera permission, so it is open during setup too. -->
+            <LinearLayout style="@style/LayzeeCard">
+                <TextView
+                    android:id="@+id/test_hint"
+                    style="@style/LayzeeBody"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/test_stop_first"
+                    android:visibility="gone" />
+                <Button
+                    android:id="@+id/open_test"
+                    style="@style/LayzeeButtonSecondary"
+                    android:layout_width="match_parent"
+                    android:text="@string/open_test" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/test_hint"
+                android:id="@+id/steps_title"
+                style="@style/LayzeeSectionTitle" />
+            <!-- The permission cards, inflated from item_step. -->
+            <LinearLayout
+                android:id="@+id/steps"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/test_stop_first"
-                android:textColor="#B00020"
-                android:visibility="gone" />
-            <Button
-                android:id="@+id/open_test"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/open_test" />
+                android:orientation="vertical" />
+
+            <TextView
+                style="@style/LayzeeSectionTitle"
+                android:text="@string/about_title" />
+            <LinearLayout style="@style/LayzeeCard">
+                <TextView
+                    style="@style/LayzeeBody"
+                    android:text="@string/about_local" />
+                <TextView
+                    style="@style/LayzeeBody"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/about_no_internet" />
+                <TextView
+                    style="@style/LayzeeBody"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/about_accessibility" />
+                <TextView
+                    android:id="@+id/about_version"
+                    style="@style/LayzeeBody"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
@@ -139,7 +140,7 @@
         android:id="@+id/test_panel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
+        android:background="@color/bg"
         android:orientation="vertical"
         android:padding="16dp"
         android:visibility="gone">
@@ -154,6 +155,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
             <TextView
@@ -161,13 +164,15 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#000000"
+                android:drawableStart="@drawable/bg_status_dot"
+                android:drawablePadding="10dp"
+                android:gravity="center_vertical"
+                android:textColor="@color/text_primary"
                 android:textSize="20sp"
                 android:textStyle="bold" />
             <Button
                 android:id="@+id/test_close"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                style="@style/LayzeeButtonSecondary"
                 android:text="@string/test_close" />
         </LinearLayout>
 
@@ -176,7 +181,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="#000000"
+            android:background="@color/card"
             android:divider="@null" />
     </LinearLayout>
 </FrameLayout>

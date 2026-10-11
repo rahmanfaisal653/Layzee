@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A permission step that is in place: green disc with a check. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <path
+        android:pathData="M14,14 m-13,0 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0"
+        android:fillColor="@color/step_done" />
+    <path
+        android:pathData="M8.5,14.5 L12.3,18.3 L19.5,10.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

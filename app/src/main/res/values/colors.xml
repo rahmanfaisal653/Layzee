@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#103A44</color>
+
+    <!-- Light (follows the system); the dark set is in values-night. One accent, teal like the launcher icon. -->
+    <color name="bg">#F4F7F9</color>
+    <color name="card">#FFFFFF</color>
+    <color name="card_stroke">#DDE5EA</color>
+    <color name="text_primary">#12202A</color>
+    <color name="text_secondary">#55646F</color>
+    <color name="accent">#0E6B80</color>
+    <color name="on_accent">#FFFFFF</color>
+
+    <!-- Status palette, the same in light and dark and in the overlay ring. -->
+    <color name="status_off">#6B7780</color>
+    <color name="status_idle">#8A8A8A</color>
+    <color name="status_tracking">#E0A000</color>
+    <color name="status_pinch">#1B9E3E</color>
+    <color name="step_done">#1B9E3E</color>
+    <color name="step_todo">#E0A000</color>
 </resources>

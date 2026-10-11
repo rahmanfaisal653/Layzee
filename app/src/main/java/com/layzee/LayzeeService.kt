@@ -60,6 +60,7 @@ class LayzeeService : Service(), LifecycleOwner {
     private val forward = object : HandLandmarkerSource.Listener {
         override fun onFrame(frame: HandFrame, state: GestureState) {
             overlay?.setState(state)
+            publish(state)
         }
 
         override fun onImage(image: Bitmap) = Unit
@@ -68,6 +69,7 @@ class LayzeeService : Service(), LifecycleOwner {
     override fun onCreate() {
         super.onCreate()
         registry.currentState = Lifecycle.State.STARTED
+        publish(null)
         running = true
         // From here until the user's Stop; a start that never gets this far is not a kill.
         SetupStore(this).let { it.state = it.state.copy(shouldRun = true) }
@@ -91,6 +93,7 @@ class LayzeeService : Service(), LifecycleOwner {
     private fun startPipeline() {
         if (pipeline != null) return
         overlay?.setState(GestureState.IDLE)
+        publish(GestureState.IDLE)
         pipeline = CameraPipeline(
             context = this,
             lifecycleOwner = this,
@@ -98,6 +101,15 @@ class LayzeeService : Service(), LifecycleOwner {
             listener = forward,
             dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
         ).also { it.start() }
+    }
+
+    // Only a change is published, so the Dashboard is told at most a few times a second, not per frame.
+    // Called from the camera thread and the main thread; a late frame after Off is cleared again by onCreate.
+    @Synchronized
+    private fun publish(newState: GestureState?) {
+        if (newState == current) return
+        current = newState
+        onStateChanged?.invoke(newState)
     }
 
     private fun releasePipeline() {
@@ -111,6 +123,7 @@ class LayzeeService : Service(), LifecycleOwner {
         overlay = null
         releasePipeline()
         registry.currentState = Lifecycle.State.DESTROYED
+        publish(null)
         running = false
         onRunningChanged?.invoke()
         super.onDestroy()
@@ -188,6 +201,15 @@ class LayzeeService : Service(), LifecycleOwner {
         @Volatile
         var running = false
             private set
+
+        /** The state the pipeline last reported while Layzee runs; null is Off. Written by [publish] only. */
+        @Volatile
+        internal var current: GestureState? = null
+            private set
+
+        /** Called when [current] changes, on whichever thread produced it (the camera thread while running). */
+        @Volatile
+        internal var onStateChanged: ((GestureState?) -> Unit)? = null
 
         /** Called on the main thread whenever [running] changes. Set by the Dashboard while it is open. */
         internal var onRunningChanged: (() -> Unit)? = null

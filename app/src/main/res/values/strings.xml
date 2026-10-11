@@ -27,8 +27,23 @@
     <string name="step_app_info_action">Info app</string>
     <string name="step_battery_done">Sudah saya atur</string>
     <string name="died_hint">Layzee berhenti sendiri tanpa Anda menekan Stop. Kemungkinan sistem mematikannya: periksa lagi langkah baterai dan autostart di bawah.</string>
-    <string name="step_done">✓ %1$s</string>
-    <string name="step_todo">○ %1$s</string>
+    <string name="step_status_desc">%1$s: %2$s</string>
+    <string name="step_done_desc">Sudah</string>
+    <string name="step_todo_desc">Belum</string>
+    <string name="why">Kenapa?</string>
+    <string name="why_hide">Tutup</string>
+    <string name="setup_title">LANGKAH SETUP</string>
+    <string name="permissions_title">IZIN</string>
+    <string name="howto_title">CARA PAKAI</string>
+    <string name="howto_1">1. Taruh HP di stand, layar menghadap Anda, sekitar 30-60 cm dari tangan.</string>
+    <string name="howto_2">2. Tekan Start, buka Reels atau TikTok, lalu tunjukkan satu tangan ke kamera depan.</string>
+    <string name="howto_3">3. Pinch (ujung jempol dan telunjuk bertemu) = satu swipe ke atas. Hentikan lewat ikon melayang atau tombol Stop di sini.</string>
+    <string name="about_title">TENTANG &amp; PRIVASI</string>
+    <string name="about_local">Gambar kamera diproses di HP ini saja dan tidak pernah dikirim atau disimpan.</string>
+    <string name="about_no_internet">Layzee tidak punya izin internet, tidak ada akun, dan tidak ada cloud.</string>
+    <string name="about_accessibility">Accessibility dibutuhkan karena Android hanya mengizinkan app mengirim sentuhan ke app lain lewat izin itu. Layzee memakainya hanya untuk satu geseran ke atas per pinch dan tidak membaca isi layar.</string>
+    <string name="about_version">Versi %1$s</string>
+    <string name="state_off">Off</string>
     <string name="open_test">Uji pinch</string>
     <string name="test_stop_first">Kamera sedang dipakai Layzee. Tekan Stop dulu untuk uji pinch.</string>
     <string name="test_close">Tutup</string>

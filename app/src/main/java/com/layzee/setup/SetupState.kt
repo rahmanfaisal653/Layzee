@@ -17,6 +17,9 @@ data class SetupState(
 ) {
     fun canStart(permissions: Permissions) = permissions.all && batteryDone && consentGiven
 
+    /** The main screen (Start/Stop) replaces the setup list; a running Layzee always keeps its Stop. */
+    fun showsMain(permissions: Permissions, running: Boolean) = running || canStart(permissions)
+
     /** Layzee should be running but is not: the system killed it, so the battery step must be checked again. */
     fun reconcile(running: Boolean) =
         if (shouldRun && !running) copy(batteryDone = false, shouldRun = false, diedUnexpectedly = true) else this

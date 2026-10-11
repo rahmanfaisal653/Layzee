@@ -122,12 +122,15 @@ internal class Overlay(
 
     /** A round badge (dark disc, state-colored ring, state glyph); drag moves the window, a release without drag is a click. */
     private inner class IconView(context: Context) : View(context) {
+        private val idleColor = context.getColor(R.color.status_idle)
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FILL_COLOR }
         private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = RING_DP * density
-            color = IDLE_COLOR
+            color = idleColor
         }
+        private val trackingColor = context.getColor(R.color.status_tracking)
+        private val pinchColor = context.getColor(R.color.status_pinch)
         private val glyphInset = (GLYPH_INSET_DP * density).toInt()
         private val glyphs = arrayOf(R.drawable.ic_overlay_idle, R.drawable.ic_overlay_tracking, R.drawable.ic_overlay_pinch)
             .map { requireNotNull(context.getDrawable(it)) }
@@ -146,9 +149,9 @@ internal class Overlay(
 
         fun setColorFor(state: GestureState) {
             ring.color = when (state) {
-                GestureState.IDLE -> IDLE_COLOR
-                GestureState.TRACKING -> TRACKING_COLOR
-                GestureState.PINCH -> PINCH_COLOR
+                GestureState.IDLE -> idleColor
+                GestureState.TRACKING -> trackingColor
+                GestureState.PINCH -> pinchColor
             }
             glyph = glyphs[state.ordinal]
             invalidate()
@@ -222,10 +225,8 @@ internal class Overlay(
         const val RING_DP = 3
         const val GLYPH_INSET_DP = 11
 
-        // Ring colors share the Dashboard status label's palette; the glyph carries the state without color.
+        // Ring colors are the status_* resources, shared with the Dashboard status label; the glyph carries the
+        // state without color.
         const val FILL_COLOR = 0xCC202020.toInt()
-        const val IDLE_COLOR = 0xFF8A8A8A.toInt()
-        const val TRACKING_COLOR = 0xFFE0A000.toInt()
-        const val PINCH_COLOR = 0xFF1B9E3E.toInt()
     }
 }

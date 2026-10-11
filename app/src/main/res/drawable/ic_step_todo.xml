@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A permission step still to do: amber ring with a dot. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <path
+        android:pathData="M14,14 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0"
+        android:strokeColor="@color/step_todo"
+        android:strokeWidth="2.4" />
+    <path
+        android:pathData="M14,14 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="@color/step_todo" />
+</vector>
