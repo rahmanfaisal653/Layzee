@@ -280,6 +280,7 @@ class DashboardActivity : ComponentActivity() {
         calibrationPanel.visibility = View.VISIBLE
         calibrationBack.isEnabled = true
         restartCalibration()
+        calibrating = true
         calibrationPipeline = CameraPipeline(
             context = this,
             lifecycleOwner = this,
