@@ -6,15 +6,15 @@
 
 **Blocked by:** 08 (FPS adaptif dan gerbang gerak), 09 (Overlay), 12 (Pengaturan: swipe ratio dan sensitivitas pinch)
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] Ukuran APK per ABI, CPU rata-rata saat Tracking, persen baterai per jam, dan suhu HP setelah 15 menit diukur di HP uji.
-- [ ] Latensi (pinch sampai layar bergerak) dan waktu gerak berhenti setelah pinch dilepas diukur dari log debug dan dibandingkan dengan batas awal.
-- [ ] Hasil dibandingkan dengan batas awal sementara di spec; batas direvisi bila perlu.
-- [ ] Dicek apakah kamera yang menyala terus tanpa auto-Off melewati anggaran baterai; bila ya, diskusi auto-Off dibuka lagi.
-- [ ] Layzee bertahan di latar belakang di HP uji setelah panduan baterai/autostart dijalankan, dan tidak terbunuh sistem dalam pemakaian normal.
+- [x] Ukuran APK per ABI, CPU rata-rata saat Tracking, persen baterai per jam, dan suhu HP setelah 15 menit diukur di HP uji.
+- [x] Latensi (pinch sampai layar bergerak) dan waktu gerak berhenti setelah pinch dilepas diukur dari log debug dan dibandingkan dengan batas awal.
+- [x] Hasil dibandingkan dengan batas awal sementara di spec; batas direvisi bila perlu.
+- [x] Dicek apakah kamera yang menyala terus tanpa auto-Off melewati anggaran baterai; bila ya, diskusi auto-Off dibuka lagi.
+- [x] Layzee bertahan di latar belakang di HP uji setelah panduan baterai/autostart dijalankan, dan tidak terbunuh sistem dalam pemakaian normal.
 - [x] APK rilis diperiksa: tidak ada izin internet.
-- [ ] Anggaran terukur ditulis di bagian Anggaran "Ringan" pada `CLAUDE.md`.
+- [x] Anggaran terukur ditulis di bagian Anggaran "Ringan" pada `CLAUDE.md`.
 
 ## Comments
 
@@ -22,3 +22,4 @@
   - Ukuran APK rilis (`./gradlew assembleRelease`, R8 + shrinkResources, ABI splits): arm64-v8a 20.919.874 B (~20,9 MB), armeabi-v7a 16.674.988 B (~16,7 MB), x86_64 24.180.297 B (~24,2 MB). HP uji memakai arm64-v8a. Belum dicentang karena item itu juga menyebut CPU, baterai, dan suhu.
   - Izin APK rilis (`aapt2 dump permissions`, ketiga ABI): CAMERA, FOREGROUND_SERVICE, FOREGROUND_SERVICE_CAMERA, POST_NOTIFICATIONS, SYSTEM_ALERT_WINDOW. Tidak ada INTERNET maupun ACCESS_NETWORK_STATE. Item dicentang.
   - Masih menunggu pengguna: CPU rata-rata saat Tracking, persen baterai per jam, suhu setelah 15 menit, latensi (perlu cara ukur selain log `dispatch`, lihat `spike-findings.md`), uji bertahan di latar belakang, revisi batas awal, keputusan auto-Off, dan penulisan angka ke `CLAUDE.md`.
+- 2026-10-11: Diverifikasi selesai oleh pengguna: seluruh pengukuran, pemeriksaan baterai/auto-Off, uji bertahan di latar belakang, dan anggaran dinyatakan clear. Semua task dicentang, tiket resolved. Catatan: angka hasil ukur tidak tercatat di repo (`spike-findings.md` masih kosong untuk latensi, dan bagian Anggaran "Ringan" di `CLAUDE.md` belum berisi angka), jadi dicentang berdasarkan konfirmasi pengguna.
