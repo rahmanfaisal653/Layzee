@@ -20,9 +20,10 @@ import com.layzee.R
 import com.layzee.gesture.GestureState
 
 /**
- * The floating status icon, one small View in a `WindowManager` overlay window. Its color follows the gesture
- * state, it can be dragged and snaps to the left or right edge, and a click opens a small menu with "Stop"
- * and "Buka dashboard". No camera preview and no Start button. Windows are not focusable and the icon is
+ * The floating status icon, one small View in a `WindowManager` overlay window. A round badge whose ring color
+ * and glyph (dot / open V / closed V) follow the gesture state, so the state never relies on color alone. It can
+ * be dragged and snaps to the left or right edge, and a click opens a small menu with "Stop" and "Buka dashboard".
+ * No camera preview and no Start button. Windows are not focusable and the icon is
  * edge-sized, so the screen center (where the swipe starts) stays free.
  *
  * All methods except [setState] must be called on the main thread; [setState] may be called from the
@@ -119,9 +120,18 @@ internal class Overlay(
         ).apply { gravity = Gravity.TOP or Gravity.START }
     }
 
-    /** A colored dot; drag moves the window, a release without drag is a click. */
+    /** A round badge (dark disc, state-colored ring, state glyph); drag moves the window, a release without drag is a click. */
     private inner class IconView(context: Context) : View(context) {
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = IDLE_COLOR }
+        private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FILL_COLOR }
+        private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = RING_DP * density
+            color = IDLE_COLOR
+        }
+        private val glyphInset = (GLYPH_INSET_DP * density).toInt()
+        private val glyphs = arrayOf(R.drawable.ic_overlay_idle, R.drawable.ic_overlay_tracking, R.drawable.ic_overlay_pinch)
+            .map { requireNotNull(context.getDrawable(it)) }
+        private var glyph = glyphs[GestureState.IDLE.ordinal]
         private val slop = ViewConfiguration.get(context).scaledTouchSlop
         private var downX = 0f
         private var downY = 0f
@@ -135,17 +145,25 @@ internal class Overlay(
         }
 
         fun setColorFor(state: GestureState) {
-            paint.color = when (state) {
+            ring.color = when (state) {
                 GestureState.IDLE -> IDLE_COLOR
                 GestureState.TRACKING -> TRACKING_COLOR
                 GestureState.PINCH -> PINCH_COLOR
             }
+            glyph = glyphs[state.ordinal]
             invalidate()
+        }
+
+        override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+            for (g in glyphs) g.setBounds(glyphInset, glyphInset, w - glyphInset, h - glyphInset)
         }
 
         override fun onDraw(canvas: Canvas) {
             val r = width / 2f
-            canvas.drawCircle(r, r, r - 2 * density, paint)
+            val edge = r - ring.strokeWidth / 2 - density
+            canvas.drawCircle(r, r, edge, fill)
+            canvas.drawCircle(r, r, edge, ring)
+            glyph.draw(canvas)
         }
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -201,9 +219,13 @@ internal class Overlay(
         const val START_Y_FRACTION = 0.3f
         const val SNAP_MS = 150L
 
-        // Same palette as the Dashboard's status label.
-        const val IDLE_COLOR = 0xCC555555.toInt()
-        const val TRACKING_COLOR = 0xCCE0A000.toInt()
-        const val PINCH_COLOR = 0xCC1B9E3E.toInt()
+        const val RING_DP = 3
+        const val GLYPH_INSET_DP = 11
+
+        // Ring colors share the Dashboard status label's palette; the glyph carries the state without color.
+        const val FILL_COLOR = 0xCC202020.toInt()
+        const val IDLE_COLOR = 0xFF8A8A8A.toInt()
+        const val TRACKING_COLOR = 0xFFE0A000.toInt()
+        const val PINCH_COLOR = 0xFF1B9E3E.toInt()
     }
 }
