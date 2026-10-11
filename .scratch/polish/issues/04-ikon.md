@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** implemented; menunggu uji visual di HP (Realme)
+**Status:** resolved
 
 - [x] Adaptive icon launcher (vector) bermotif jempol dan telunjuk membentuk lingkaran, dengan versi monokrom untuk themed icon.
 - [x] `android:icon` dan `android:roundIcon` di manifest.
@@ -23,3 +23,7 @@
 | x86_64 | 24.178.009 | 24.182.017 | +4.008 |
 
 Ikon launcher/glyph overlay/notifikasi semuanya vector XML; selisih ~4 KB (termasuk ikon default sebelumnya yang tidak ada). Tampilan di HP belum dilihat langsung.
+
+## Comments
+
+- 2026-10-11: Ditutup atas keputusan pengguna ("sudah cukup"). Kode selesai; uji di HP Realme tidak dicatat sebagai verifikasi terpisah.
