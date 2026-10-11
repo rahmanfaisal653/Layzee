@@ -31,6 +31,8 @@ import com.layzee.calibration.Calibration
 import com.layzee.calibration.CalibrationSession
 import com.layzee.calibration.CalibrationStore
 import com.layzee.calibration.SensitivityStore
+import com.layzee.setup.SettingsStore
+import com.layzee.setup.Tuning
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
@@ -177,6 +179,13 @@ class DashboardActivity : ComponentActivity() {
                 override fun onStopTrackingTouch(bar: SeekBar) = Unit
             })
         }
+        val settings = SettingsStore(this)
+        landmarkView.dotScale = Tuning.dotScale(settings.dotLevel)
+        bindLevel(R.id.dot_size, settings.dotLevel) {
+            settings.dotLevel = it
+            landmarkView.dotScale = Tuning.dotScale(it)
+        }
+        bindLevel(R.id.swipe_speed, settings.speedLevel) { settings.speedLevel = it }
         findViewById<Button>(R.id.calibration_restart).setOnClickListener { restartCalibration() }
         findViewById<Button>(R.id.calibration_close).setOnClickListener { closeCalibration() }
         findViewById<Button>(R.id.open_playground).setOnClickListener { showPlayground(true) }
@@ -267,6 +276,20 @@ class DashboardActivity : ComponentActivity() {
             } catch (e: ActivityNotFoundException) {
                 // Nowhere left to send the user.
             }
+        }
+    }
+
+    private fun bindLevel(id: Int, level: Int, onChange: (Int) -> Unit) {
+        findViewById<SeekBar>(id).apply {
+            progress = level
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
+                    if (fromUser) onChange(value)
+                }
+
+                override fun onStartTrackingTouch(bar: SeekBar) = Unit
+                override fun onStopTrackingTouch(bar: SeekBar) = Unit
+            })
         }
     }
 

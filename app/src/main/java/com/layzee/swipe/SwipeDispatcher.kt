@@ -6,6 +6,8 @@ import android.accessibilityservice.GestureDescription.StrokeDescription
 import android.graphics.Path
 import android.util.Log
 import com.layzee.BuildConfig
+import com.layzee.setup.SettingsStore
+import com.layzee.setup.Tuning
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -15,10 +17,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * one is still running is dropped (a new gesture would cancel the running one).
  *
  * Called from the MediaPipe callback thread, callbacks arrive on the main thread. The Accessibility API
- * allocates per gesture (stroke, description); that cannot be reused, but a flick is rare.
+ * allocates per gesture (stroke, description); that cannot be reused, but a flick is rare. The flick duration
+ * is the user's swipe speed setting, read per flick so a change applies at once.
  */
 class SwipeDispatcher(private val service: AccessibilityService) {
     private val path = Path() // StrokeDescription copies the path, so one instance is reused
+    private val settings = SettingsStore(service)
     private val inFlight = AtomicBoolean(false)
 
     private val callback = object : AccessibilityService.GestureResultCallback() {
@@ -38,14 +42,10 @@ class SwipeDispatcher(private val service: AccessibilityService) {
         path.rewind()
         path.moveTo(x, fromY)
         path.lineTo(x, toY)
-        val gesture = GestureDescription.Builder().addStroke(StrokeDescription(path, 0, FLICK_MS)).build()
+        val gesture = GestureDescription.Builder().addStroke(StrokeDescription(path, 0, Tuning.flickMs(settings.speedLevel))).build()
         if (!service.dispatchGesture(gesture, callback, null)) {
             if (BuildConfig.DEBUG) Log.d("LayzeeSwipe", "dispatchGesture rejected")
             inFlight.set(false)
         }
-    }
-
-    private companion object {
-        const val FLICK_MS = 120L
     }
 }

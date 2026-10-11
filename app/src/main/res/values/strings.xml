@@ -45,6 +45,14 @@
     <string name="sensitivity_why">Menggeser sedikit hasil kalibrasi. Lebih longgar: pinch terbaca dari jarak jari yang lebih lebar. Lebih ketat: jari harus lebih rapat, jadi pinch tak sengaja berkurang. Tidak perlu kalibrasi ulang.</string>
     <string name="sensitivity_tight">Lebih ketat</string>
     <string name="sensitivity_loose">Lebih longgar</string>
+    <string name="dot_title">Ukuran titik tangan</string>
+    <string name="dot_why">Titik kecil di tangan pada pratinjau kamera. Hanya mengubah tampilan, bukan deteksi pinch.</string>
+    <string name="dot_small">Lebih kecil</string>
+    <string name="dot_large">Lebih besar</string>
+    <string name="speed_title">Kecepatan swipe</string>
+    <string name="speed_why">Seberapa cepat goresan ke atas dikirim setiap kali Anda pinch. Kalau page tidak berganti, coba lebih cepat. Berlaku langsung.</string>
+    <string name="speed_slow">Lebih lambat</string>
+    <string name="speed_fast">Lebih cepat</string>
     <string name="sensitivity_next_start">Berlaku saat Start berikutnya. Stop lalu Start lagi untuk memakainya.</string>
     <string name="open_playground">Buka area uji</string>
     <string name="step_done">✓ %1$s</string>

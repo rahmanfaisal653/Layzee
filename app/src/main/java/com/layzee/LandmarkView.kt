@@ -37,6 +37,13 @@ class LandmarkView @JvmOverloads constructor(
     private val pinchPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.RED }
     private val imagePaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
+    /** Dot size factor from the settings (1 = default). */
+    var dotScale = 1f
+        set(value) {
+            field = value
+            postInvalidateOnAnimation()
+        }
+
     /** Hides frame and landmarks (pipeline stopped). */
     fun clear() {
         synchronized(lock) {
@@ -99,7 +106,7 @@ class LandmarkView @JvmOverloads constructor(
                 (xs[Landmark.WRIST] - xs[Landmark.MIDDLE_MCP]) * uprightW * scale,
                 (ys[Landmark.WRIST] - ys[Landmark.MIDDLE_MCP]) * uprightH * scale,
             )
-            val radius = (handSize * DOT_PER_HAND_SIZE).coerceIn(density * MIN_DOT_DP, density * MAX_DOT_DP)
+            val radius = (handSize * DOT_PER_HAND_SIZE).coerceIn(density * MIN_DOT_DP, density * MAX_DOT_DP) * dotScale
             for (i in 0 until Landmark.COUNT) {
                 val special = highlight && (i == Landmark.THUMB_TIP || i == Landmark.INDEX_TIP)
                 canvas.drawCircle(
