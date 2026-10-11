@@ -13,12 +13,15 @@ class SetupStore(context: Context) {
             shouldRun = prefs.getBoolean(SHOULD_RUN, false),
             diedUnexpectedly = prefs.getBoolean(DIED, false),
         )
-        set(value) = prefs.edit()
-            .putBoolean(CONSENT, value.consentGiven)
-            .putBoolean(BATTERY, value.batteryDone)
-            .putBoolean(SHOULD_RUN, value.shouldRun)
-            .putBoolean(DIED, value.diedUnexpectedly)
-            .apply()
+        set(value) {
+            if (value == state) return // the Dashboard re-saves an unchanged state on every start
+            prefs.edit()
+                .putBoolean(CONSENT, value.consentGiven)
+                .putBoolean(BATTERY, value.batteryDone)
+                .putBoolean(SHOULD_RUN, value.shouldRun)
+                .putBoolean(DIED, value.diedUnexpectedly)
+                .apply()
+        }
 
     private companion object {
         const val CONSENT = "consent_given"

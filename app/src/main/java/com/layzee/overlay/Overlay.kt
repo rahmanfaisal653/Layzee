@@ -17,6 +17,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import com.layzee.R
+import com.layzee.statusColor
 import com.layzee.gesture.GestureState
 
 /**
@@ -122,15 +123,12 @@ internal class Overlay(
 
     /** A round badge (dark disc, state-colored ring, state glyph); drag moves the window, a release without drag is a click. */
     private inner class IconView(context: Context) : View(context) {
-        private val idleColor = context.getColor(R.color.status_idle)
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FILL_COLOR }
         private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = RING_DP * density
-            color = idleColor
+            color = context.getColor(statusColor(GestureState.IDLE))
         }
-        private val trackingColor = context.getColor(R.color.status_tracking)
-        private val pinchColor = context.getColor(R.color.status_pinch)
         private val glyphInset = (GLYPH_INSET_DP * density).toInt()
         private val glyphs = arrayOf(R.drawable.ic_overlay_idle, R.drawable.ic_overlay_tracking, R.drawable.ic_overlay_pinch)
             .map { requireNotNull(context.getDrawable(it)) }
@@ -148,11 +146,7 @@ internal class Overlay(
         }
 
         fun setColorFor(state: GestureState) {
-            ring.color = when (state) {
-                GestureState.IDLE -> idleColor
-                GestureState.TRACKING -> trackingColor
-                GestureState.PINCH -> pinchColor
-            }
+            ring.color = context.getColor(statusColor(state))
             glyph = glyphs[state.ordinal]
             invalidate()
         }
@@ -225,7 +219,7 @@ internal class Overlay(
         const val RING_DP = 3
         const val GLYPH_INSET_DP = 11
 
-        // Ring colors are the status_* resources, shared with the Dashboard status label; the glyph carries the
+        // Ring colors come from statusColor(), shared with the Dashboard status label; the glyph carries the
         // state without color.
         const val FILL_COLOR = 0xCC202020.toInt()
     }

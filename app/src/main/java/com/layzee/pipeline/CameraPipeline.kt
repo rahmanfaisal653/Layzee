@@ -21,7 +21,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.layzee.BuildConfig
 import com.layzee.gesture.GestureConfig
-import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -58,8 +57,6 @@ internal class CameraPipeline(
     @Volatile private var source: HandLandmarkerSource? = null
     @Volatile private var released = false
 
-    // Only used when the plane has row padding; reused.
-    private var rowScratch: ByteBuffer? = null
     private var provider: ProcessCameraProvider? = null
 
     init {
@@ -126,6 +123,7 @@ internal class CameraPipeline(
             val source = source ?: return
             val t0 = SystemClock.elapsedRealtimeNanos()
             val timestampNs = image.imageInfo.timestamp
+            val timestampMs = timestampNs / 1_000_000L
             val plane = image.planes[0]
             val width = image.width
             val height = image.height
@@ -133,7 +131,7 @@ internal class CameraPipeline(
             val verdict = if (preview) {
                 FramePacer.ADMIT
             } else {
-                pacer.admit(timestampNs / 1_000_000L, plane.buffer, plane.rowStride, width, height)
+                pacer.admit(timestampMs, plane.buffer, plane.rowStride, width, height)
             }
             if (verdict != FramePacer.ADMIT) {
                 if (BuildConfig.DEBUG) StageTimer.skipped(verdict)
@@ -141,40 +139,10 @@ internal class CameraPipeline(
             }
             if (BuildConfig.DEBUG) StageTimer.record(StageTimer.CAMERA, t0 - timestampNs)
 
-            val bitmap = source.bitmapFor(width, height)
-            copyPlane(plane.buffer, plane.rowStride, width, height, bitmap)
-
-            if (BuildConfig.DEBUG) StageTimer.record(StageTimer.CONVERT, SystemClock.elapsedRealtimeNanos() - t0)
-            source.submit(image.imageInfo.rotationDegrees, timestampNs / 1_000_000L)
+            source.submit(plane.buffer, plane.rowStride, width, height, image.imageInfo.rotationDegrees, timestampMs)
         } finally {
             image.close()
         }
-    }
-
-    private fun copyPlane(src: ByteBuffer, rowStride: Int, width: Int, height: Int, bitmap: android.graphics.Bitmap) {
-        val tightRow = width * 4
-        src.rewind()
-        if (rowStride == tightRow) {
-            bitmap.copyPixelsFromBuffer(src)
-            return
-        }
-        // Padded rows: repack into a tight buffer first.
-        val needed = tightRow * height
-        var scratch = rowScratch
-        if (scratch == null || scratch.capacity() != needed) {
-            scratch = ByteBuffer.allocateDirect(needed)
-            rowScratch = scratch
-        }
-        scratch.clear()
-        val limit = src.limit()
-        for (row in 0 until height) {
-            val start = row * rowStride
-            src.limit(minOf(start + tightRow, limit)).position(start)
-            scratch.put(src)
-        }
-        src.limit(limit)
-        scratch.rewind()
-        bitmap.copyPixelsFromBuffer(scratch)
     }
 
     private companion object {

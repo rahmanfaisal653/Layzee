@@ -1,13 +1,15 @@
 package com.layzee.gesture
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Drives the engine with synthetic frames and checks the swipe command that comes out: pinch = one flick. */
+/** Drives the engine with synthetic frames and checks whether a flick comes out: pinch = one flick. */
 class GestureFlickTest {
     private val screenW = 1000
     private val screenH = 2000
-    // Smoothing off: these tests check the swipe command, not the filter. See GestureSmoothingTest.
+    // Smoothing off: these tests check the flick, not the filter. See GestureSmoothingTest.
     private val cfg = GestureConfig(
         screenWidth = screenW,
         screenHeight = screenH,
@@ -22,7 +24,7 @@ class GestureFlickTest {
     private var clockMs = 0L
 
     /** A hand of 100 px (wrist to middle MCP) in a 640x480 frame; [tipGap] is thumb tip to index tip in hand sizes. */
-    private fun feed(cy: Float = 240f, tipGap: Float = 0.1f, pipGap: Float = 0.2f, confidence: Float = 0.9f): SwipeCommand {
+    private fun feed(cy: Float = 240f, tipGap: Float = 0.1f, pipGap: Float = 0.2f, confidence: Float = 0.9f): Boolean {
         val width = 640
         val height = 480
         val cx = 320f
@@ -41,23 +43,23 @@ class GestureFlickTest {
         frame.timestampMs = clockMs
         clockMs += 33
         engine.process(frame, cfg, out)
-        return out.command
+        return out.flick
     }
 
-    private fun feedNoHand(): SwipeCommand {
+    private fun feedNoHand(): Boolean {
         frame.handPresent = false
         frame.timestampMs = clockMs
         clockMs += 33
         engine.process(frame, cfg, out)
-        return out.command
+        return out.flick
     }
 
     private fun open() = feed(tipGap = 1.0f, pipGap = 1.0f)
 
     /** Pinches until the flick fires. */
     private fun pinch() {
-        repeat(cfg.enterFrames - 1) { assertEquals(SwipeCommand.NONE, feed()) }
-        assertEquals(SwipeCommand.FLICK, feed())
+        repeat(cfg.enterFrames - 1) { assertFalse(feed()) }
+        assertTrue(feed())
     }
 
     private fun release() {
@@ -72,8 +74,8 @@ class GestureFlickTest {
 
     @Test
     fun noCommandsWhileNotPinching() {
-        assertEquals(SwipeCommand.NONE, feedNoHand())
-        repeat(5) { assertEquals(SwipeCommand.NONE, open()) }
+        assertFalse(feedNoHand())
+        repeat(5) { assertFalse(open()) }
     }
 
     @Test
@@ -90,7 +92,7 @@ class GestureFlickTest {
     fun flickStartPointDoesNotDependOnWhereTheHandIs() {
         open()
         repeat(cfg.enterFrames - 1) { feed(cy = 100f) }
-        assertEquals(SwipeCommand.FLICK, feed(cy = 100f))
+        assertTrue(feed(cy = 100f))
         assertEquals(screenH * 0.65f, out.y, 0.01f)
     }
 
@@ -98,7 +100,7 @@ class GestureFlickTest {
     fun heldPinchFlicksOnlyOnce() {
         open()
         pinch()
-        repeat(60) { assertEquals(SwipeCommand.NONE, feed()) }
+        repeat(60) { assertFalse(feed()) }
         assertEquals(GestureState.PINCH, out.state)
     }
 
@@ -106,7 +108,7 @@ class GestureFlickTest {
     fun handMovementDuringPinchIsNotRead() {
         open()
         pinch()
-        repeat(20) { i -> assertEquals(SwipeCommand.NONE, feed(cy = 240f - i * 10f)) }
+        repeat(20) { i -> assertFalse(feed(cy = 240f - i * 10f)) }
     }
 
     @Test
@@ -122,17 +124,17 @@ class GestureFlickTest {
     fun briefReleaseBlipDoesNotAllowASecondFlick() {
         open()
         pinch()
-        assertEquals(SwipeCommand.NONE, open())
-        repeat(5) { assertEquals(SwipeCommand.NONE, feed()) }
+        assertFalse(open())
+        repeat(5) { assertFalse(feed()) }
     }
 
     @Test
     fun handLostWhilePinchedAndBackStillPinchedDoesNotFlickAgain() {
         open()
         pinch()
-        assertEquals(SwipeCommand.NONE, feedNoHand())
+        assertFalse(feedNoHand())
         assertEquals(GestureState.IDLE, out.state)
-        repeat(10) { assertEquals(SwipeCommand.NONE, feed()) }
+        repeat(10) { assertFalse(feed()) }
         assertEquals(GestureState.TRACKING, out.state)
     }
 
@@ -148,6 +150,6 @@ class GestureFlickTest {
     @Test
     fun lowConfidencePinchDoesNotFlick() {
         open()
-        repeat(5) { assertEquals(SwipeCommand.NONE, feed(confidence = 0.2f)) }
+        repeat(5) { assertFalse(feed(confidence = 0.2f)) }
     }
 }

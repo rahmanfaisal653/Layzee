@@ -118,7 +118,7 @@ class DashboardActivity : ComponentActivity() {
         ) { openAccessibility() }
         stepOverlay = StepCard(
             steps, R.string.step_overlay, R.string.step_overlay_why, R.string.step_overlay_action,
-        ) { openSettings(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
+        ) { openSettings(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri())) }
         stepCamera = StepCard(
             steps, R.string.step_camera, R.string.step_camera_why, R.string.step_camera_action,
         ) { requestCamera.launch(Manifest.permission.CAMERA) }
@@ -161,7 +161,7 @@ class DashboardActivity : ComponentActivity() {
         store.state = store.state.reconcile(LayzeeService.running)
         LayzeeService.onRunningChanged = ::refresh
         LayzeeService.onStateChanged = { mainHandler.post { refreshStatus() } }
-        refresh()
+        // No refresh() here: onResume follows and does it.
     }
 
     // Returning from a settings page lands here, so the checks follow what the user just changed.
@@ -198,8 +198,7 @@ class DashboardActivity : ComponentActivity() {
         intro.visibility = if (main) View.GONE else View.VISIBLE
         stepsTitle.setText(if (main) R.string.permissions_title else R.string.setup_title)
         toggle.setText(if (running) R.string.stop else R.string.start)
-        toggle.setBackgroundResource(if (running) R.drawable.bg_button_secondary else R.drawable.bg_button_primary)
-        toggle.setTextColor(getColorStateList(if (running) R.color.button_secondary_text else R.color.button_primary_text))
+        toggle.setEmphasis(primary = !running)
         // The front camera is Layzee's while it runs; the test screen needs it for itself.
         openTest.isEnabled = !running
         testHint.visibility = if (running) View.VISIBLE else View.GONE
@@ -228,8 +227,11 @@ class DashboardActivity : ComponentActivity() {
             .show()
     }
 
-    private fun openAppInfo() =
-        openSettings(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+    private fun packageUri() = Uri.parse("package:$packageName")
+
+    private fun appInfoIntent() = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri())
+
+    private fun openAppInfo() = openSettings(appInfoIntent())
 
     // Some vendor ROMs lack individual settings pages; the app info page always exists.
     private fun openSettings(intent: Intent) {
@@ -237,7 +239,7 @@ class DashboardActivity : ComponentActivity() {
             startActivity(intent)
         } catch (e: ActivityNotFoundException) {
             try {
-                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                startActivity(appInfoIntent())
             } catch (e: ActivityNotFoundException) {
                 // Nowhere left to send the user.
             }
@@ -274,14 +276,15 @@ class DashboardActivity : ComponentActivity() {
 
     /** The status label: a colored dot (the overlay's palette) and the state name; null is Off. */
     private fun bindStatus(view: TextView, state: GestureState?) {
-        val (label, color) = when (state) {
-            null -> R.string.state_off to R.color.status_off
-            GestureState.IDLE -> R.string.state_idle to R.color.status_idle
-            GestureState.TRACKING -> R.string.state_tracking to R.color.status_tracking
-            GestureState.PINCH -> R.string.state_pinch to R.color.status_pinch
-        }
-        view.setText(label)
-        view.compoundDrawableTintList = ColorStateList.valueOf(getColor(color))
+        view.setText(
+            when (state) {
+                null -> R.string.state_off
+                GestureState.IDLE -> R.string.state_idle
+                GestureState.TRACKING -> R.string.state_tracking
+                GestureState.PINCH -> R.string.state_pinch
+            },
+        )
+        view.compoundDrawableTintList = ColorStateList.valueOf(getColor(statusColor(state)))
     }
 
     private fun hasPermission(permission: String) =

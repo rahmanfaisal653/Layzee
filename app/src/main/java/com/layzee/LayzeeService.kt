@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
-import android.graphics.Bitmap
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
@@ -61,8 +60,6 @@ class LayzeeService : Service(), LifecycleOwner {
             overlay?.setState(state)
             publish(state)
         }
-
-        override fun onImage(image: Bitmap) = Unit
     }
 
     override fun onCreate() {
@@ -103,11 +100,13 @@ class LayzeeService : Service(), LifecycleOwner {
 
     // Only a change is published, so the Dashboard is told at most a few times a second, not per frame.
     // Called from the camera thread and the main thread; a late frame after Off is cleared again by onCreate.
-    @Synchronized
     private fun publish(newState: GestureState?) {
-        if (newState == current) return
-        current = newState
-        onStateChanged?.invoke(newState)
+        if (newState == current) return // nearly every frame: no lock
+        synchronized(this) {
+            if (newState == current) return
+            current = newState
+            onStateChanged?.invoke(newState)
+        }
     }
 
     private fun releasePipeline() {

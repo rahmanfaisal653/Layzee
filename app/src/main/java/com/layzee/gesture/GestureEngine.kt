@@ -1,7 +1,27 @@
 package com.layzee.gesture
 
+import kotlin.math.sqrt
+
+/** Reused result container: the engine writes into it instead of returning new objects per frame. */
+class GestureOutput {
+    var state = GestureState.IDLE
+        internal set
+
+    /** True for the one frame where a pinch begins: send one flick up from ([x], [y]) to [toY]. */
+    var flick = false
+        internal set
+
+    /** Where the flick starts and ends, in screen pixels; valid when [flick]. */
+    var x = 0f
+        internal set
+    var y = 0f
+        internal set
+    var toY = 0f
+        internal set
+}
+
 /**
- * Pure frame-by-frame gesture logic: Idle / Tracking / Pinch, plus the swipe command. No Android types and
+ * Pure frame-by-frame gesture logic: Idle / Tracking / Pinch, plus the flick. No Android types and
  * no allocation per frame.
  *
  * - Pinch distance = thumb tip to index tip over hand size, measured in real pixels.
@@ -29,7 +49,9 @@ class GestureEngine {
     // Closest the tip distance got during this pinch: the user's own "touching" reading, which varies with hand angle.
     private var pinchBaseline = 0f
     private var apartFrames = 0
-    private val measure = PinchMeasure()
+    // The two pinch distances of the current frame, in hand sizes (see [measure]).
+    private var rawTipRatio = 0f
+    private var rawFallbackRatio = 0f
     private val tipFilter = OneEuroFilter()
     private val fallbackFilter = OneEuroFilter()
 
@@ -46,7 +68,7 @@ class GestureEngine {
     }
 
     fun process(frame: HandFrame, config: GestureConfig, out: GestureOutput) {
-        out.command = SwipeCommand.NONE
+        out.flick = false
 
         if (!frame.handPresent || frame.confidence < config.minConfidence) {
             reset()
@@ -54,7 +76,7 @@ class GestureEngine {
             return
         }
 
-        if (!measure.measure(frame, config.minHandSizePx)) {
+        if (!measure(frame, config.minHandSizePx)) {
             // Too far away to read: seen, but never a pinch. A pinch in progress ends at once.
             reset()
             state = GestureState.TRACKING
@@ -65,13 +87,13 @@ class GestureEngine {
         if (state == GestureState.IDLE) state = GestureState.TRACKING
 
         val inPinch = state == GestureState.PINCH
-        val tipRatio = tipFilter.filter(measure.tipRatio, frame.timestampMs, config.smoothingMinCutoffHz, config.smoothingBeta)
+        val tipRatio = tipFilter.filter(rawTipRatio, frame.timestampMs, config.smoothingMinCutoffHz, config.smoothingBeta)
         // A fallback threshold of 0 means it is switched off: skip its filter too.
         val fallbackOn = config.fallbackEnterRatio > 0f
         val fallbackRatio = if (fallbackOn) {
-            fallbackFilter.filter(measure.fallbackRatio, frame.timestampMs, config.smoothingMinCutoffHz, config.smoothingBeta)
+            fallbackFilter.filter(rawFallbackRatio, frame.timestampMs, config.smoothingMinCutoffHz, config.smoothingBeta)
         } else {
-            measure.fallbackRatio
+            rawFallbackRatio
         }
         // Only the tip measure decides that the fingers are apart: the fallback measure reads 0.5-0.6 even on an
         // open hand at some angles and distances, which used to keep the pinch stuck. In Pinch the fingers count as
@@ -120,9 +142,30 @@ class GestureEngine {
     private fun flick(config: GestureConfig, out: GestureOutput) {
         spent = true
         val height = config.screenHeight.toFloat()
-        out.command = SwipeCommand.FLICK
+        out.flick = true
         out.x = config.screenWidth / 2f
         out.y = height * config.startYFraction
         out.toY = (out.y - height * config.flickDistanceFraction).coerceAtLeast(0f)
+    }
+
+    /**
+     * Fills [rawTipRatio] (thumb tip to index tip over hand size) and [rawFallbackRatio] (thumb tip to index PIP,
+     * for a partly hidden index tip), both in real pixels. False when the hand is smaller than [minHandSizePx]
+     * (too far away, or degenerate).
+     */
+    private fun measure(frame: HandFrame, minHandSizePx: Float): Boolean {
+        val w = frame.frameWidth.toFloat()
+        val h = frame.frameHeight.toFloat()
+        val handSize = distance(frame, Landmark.WRIST, Landmark.MIDDLE_MCP, w, h)
+        if (handSize < minHandSizePx) return false
+        rawTipRatio = distance(frame, Landmark.THUMB_TIP, Landmark.INDEX_TIP, w, h) / handSize
+        rawFallbackRatio = distance(frame, Landmark.THUMB_TIP, Landmark.INDEX_PIP, w, h) / handSize
+        return true
+    }
+
+    private fun distance(frame: HandFrame, a: Int, b: Int, w: Float, h: Float): Float {
+        val dx = (frame.xs[a] - frame.xs[b]) * w
+        val dy = (frame.ys[a] - frame.ys[b]) * h
+        return sqrt(dx * dx + dy * dy)
     }
 }

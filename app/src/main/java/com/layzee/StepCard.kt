@@ -29,6 +29,8 @@ internal class StepCard(
     val action2: Button = root.findViewById(R.id.step_action2)
     val check: CheckBox = root.findViewById(R.id.step_check)
 
+    private var isDone: Boolean? = null
+
     init {
         root.findViewById<TextView>(R.id.step_title).setText(title)
         whyView.setText(why)
@@ -43,8 +45,6 @@ internal class StepCard(
         setDone(false)
     }
 
-    private var isDone: Boolean? = null
-
     fun setDone(done: Boolean) {
         if (done == isDone) return // refresh() runs often; skip re-resolving drawables and strings
         isDone = done
@@ -56,8 +56,7 @@ internal class StepCard(
             context.getString(if (done) R.string.step_done_desc else R.string.step_todo_desc),
         )
         // What is still to do gets the filled button; what is in place keeps only an outlined shortcut.
-        action.setBackgroundResource(if (done) R.drawable.bg_button_secondary else R.drawable.bg_button_primary)
-        action.setTextColor(context.getColorStateList(if (done) R.color.button_secondary_text else R.color.button_primary_text))
+        action.setEmphasis(primary = !done)
     }
 
     fun showSecondAction(@StringRes label: Int, onClick: () -> Unit) {
