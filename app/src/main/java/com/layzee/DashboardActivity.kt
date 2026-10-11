@@ -20,6 +20,7 @@ import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.ListView
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -29,6 +30,7 @@ import androidx.core.content.ContextCompat
 import com.layzee.calibration.Calibration
 import com.layzee.calibration.CalibrationSession
 import com.layzee.calibration.CalibrationStore
+import com.layzee.calibration.SensitivityStore
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
@@ -63,6 +65,8 @@ class DashboardActivity : ComponentActivity() {
     private lateinit var calibrationPrompt: TextView
     private lateinit var calibrationProblem: TextView
     private lateinit var calibrationStore: CalibrationStore
+    private lateinit var sensitivityStore: SensitivityStore
+    private lateinit var sensitivityHint: View
 
     // The session is fed from the MediaPipe callback thread and read on the main thread.
     private val calibrationLock = Any()
@@ -115,6 +119,7 @@ class DashboardActivity : ComponentActivity() {
         setContentView(R.layout.activity_dashboard)
         store = SetupStore(this)
         calibrationStore = CalibrationStore(this)
+        sensitivityStore = SensitivityStore(this)
         stepAccessibility = findViewById(R.id.step_accessibility)
         stepOverlay = findViewById(R.id.step_overlay)
         stepCamera = findViewById(R.id.step_camera)
@@ -156,6 +161,21 @@ class DashboardActivity : ComponentActivity() {
                 openCalibrationAfterPermission = true
                 requestCamera.launch(Manifest.permission.CAMERA)
             }
+        }
+        sensitivityHint = findViewById(R.id.sensitivity_hint)
+        findViewById<SeekBar>(R.id.sensitivity).apply {
+            progress = sensitivityStore.level
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    sensitivityStore.level = value
+                    // The running service read its config at Start.
+                    sensitivityHint.visibility = if (LayzeeService.running) View.VISIBLE else View.GONE
+                }
+
+                override fun onStartTrackingTouch(bar: SeekBar) = Unit
+                override fun onStopTrackingTouch(bar: SeekBar) = Unit
+            })
         }
         findViewById<Button>(R.id.calibration_restart).setOnClickListener { restartCalibration() }
         findViewById<Button>(R.id.calibration_close).setOnClickListener { closeCalibration() }
@@ -209,6 +229,7 @@ class DashboardActivity : ComponentActivity() {
         // The front camera is Layzee's while it runs; Calibration needs it for itself.
         openCalibration.setText(if (calibrated) R.string.calibration_repeat else R.string.calibration_start)
         openCalibration.isEnabled = !running
+        if (!running) sensitivityHint.visibility = View.GONE
         calibrationHint.visibility = if (running) View.VISIBLE else View.GONE
     }
 

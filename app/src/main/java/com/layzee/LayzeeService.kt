@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.layzee.calibration.CalibrationStore
+import com.layzee.calibration.SensitivityStore
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
@@ -150,7 +151,9 @@ class LayzeeService : Service(), LifecycleOwner {
             height = metrics.heightPixels
         }
         // The user's own thresholds; Start is blocked until a calibration exists, the defaults are only a fallback.
-        val calibration = CalibrationStore(this).calibration ?: return GestureConfig(screenWidth = width, screenHeight = height)
+        val stored = CalibrationStore(this).calibration ?: return GestureConfig(screenWidth = width, screenHeight = height)
+        // Read at every Start, so a slider change applies from the next Start.
+        val calibration = stored.withSensitivity(SensitivityStore(this).level)
         return GestureConfig(
             enterRatio = calibration.enterRatio,
             exitRatio = calibration.exitRatio,

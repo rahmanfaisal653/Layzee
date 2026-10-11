@@ -25,4 +25,46 @@ class CalibrationTest {
         assertEquals(0f, c.fallbackEnterRatio, 0f)
         assertEquals(0f, c.fallbackExitRatio, 0f)
     }
+
+    private val base = Calibration(enterRatio = 0.3f, exitRatio = 0.5f, fallbackEnterRatio = 0.4f, fallbackExitRatio = 0.7f)
+
+    @Test
+    fun neutralSensitivityKeepsTheCalibrationAsIs() {
+        assertEquals(base, base.withSensitivity(Calibration.SENSITIVITY_NEUTRAL))
+    }
+
+    @Test
+    fun looserSensitivityRaisesAndTighterLowersEveryThreshold() {
+        val loose = base.withSensitivity(Calibration.SENSITIVITY_MAX)
+        val tight = base.withSensitivity(Calibration.SENSITIVITY_MIN)
+        assertTrue(loose.enterRatio > base.enterRatio && loose.exitRatio > base.exitRatio)
+        assertTrue(loose.fallbackEnterRatio > base.fallbackEnterRatio && loose.fallbackExitRatio > base.fallbackExitRatio)
+        assertTrue(tight.enterRatio < base.enterRatio && tight.exitRatio < base.exitRatio)
+        assertTrue(tight.fallbackEnterRatio < base.fallbackEnterRatio && tight.fallbackExitRatio < base.fallbackExitRatio)
+    }
+
+    @Test
+    fun sensitivityOnlyNudgesTheCalibration() {
+        val loose = base.withSensitivity(Calibration.SENSITIVITY_MAX)
+        val tight = base.withSensitivity(Calibration.SENSITIVITY_MIN)
+        assertTrue(loose.exitRatio < base.exitRatio * 1.16f)
+        assertTrue(tight.enterRatio > base.enterRatio * 0.84f)
+    }
+
+    @Test
+    fun sensitivityKeepsEnterBelowExitAndAnOffFallbackOff() {
+        for (level in Calibration.SENSITIVITY_MIN..Calibration.SENSITIVITY_MAX) {
+            val c = base.withSensitivity(level)
+            assertTrue(c.enterRatio <= c.exitRatio)
+            val off = base.copy(fallbackEnterRatio = 0f, fallbackExitRatio = 0f).withSensitivity(level)
+            assertEquals(0f, off.fallbackEnterRatio, 0f)
+            assertEquals(0f, off.fallbackExitRatio, 0f)
+        }
+    }
+
+    @Test
+    fun sensitivityOutsideTheRangeIsClamped() {
+        assertEquals(base.withSensitivity(Calibration.SENSITIVITY_MAX), base.withSensitivity(Calibration.SENSITIVITY_MAX + 5))
+        assertEquals(base.withSensitivity(Calibration.SENSITIVITY_MIN), base.withSensitivity(Calibration.SENSITIVITY_MIN - 5))
+    }
 }

@@ -132,6 +132,43 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
+            <TextView
+                style="@style/StepTitle"
+                android:text="@string/sensitivity_title" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sensitivity_why"
+                android:textColor="#333333" />
+            <SeekBar
+                android:id="@+id/sensitivity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="10" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/sensitivity_tight"
+                    android:textColor="#333333" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sensitivity_loose"
+                    android:textColor="#333333" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/sensitivity_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sensitivity_next_start"
+                android:textColor="#B00020"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/toggle"
                 android:layout_width="match_parent"

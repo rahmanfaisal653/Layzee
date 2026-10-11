@@ -18,7 +18,26 @@ data class Calibration(
         require(fallbackEnterRatio <= fallbackExitRatio) { "fallbackEnterRatio must not exceed fallbackExitRatio" }
     }
 
+    /**
+     * These thresholds nudged by Pinch sensitivity [level] ([SENSITIVITY_MIN]..[SENSITIVITY_MAX], out of range is
+     * clamped): higher is looser (a pinch is read from further apart), lower is tighter. Every threshold is
+     * scaled by the same small factor, so enter stays below exit and an off fallback stays off. The stored
+     * calibration is never changed.
+     */
+    fun withSensitivity(level: Int): Calibration {
+        val steps = level.coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX) - SENSITIVITY_NEUTRAL
+        val scale = 1f + steps * SCALE_PER_STEP
+        return Calibration(enterRatio * scale, exitRatio * scale, fallbackEnterRatio * scale, fallbackExitRatio * scale)
+    }
+
     companion object {
+        const val SENSITIVITY_MIN = 0
+        const val SENSITIVITY_NEUTRAL = 5
+        const val SENSITIVITY_MAX = 10
+
+        // At either end the thresholds move 15%: enough to feel, small enough to stay inside the calibrated gap.
+        private const val SCALE_PER_STEP = 0.03f
+
         /** Smallest gap, in hand sizes, between the loosest pinch and the tightest open hand that still separates them. */
         private const val MIN_GAP = 0.15f
 

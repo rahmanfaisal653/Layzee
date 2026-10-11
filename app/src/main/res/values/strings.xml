@@ -41,6 +41,11 @@
     <string name="calibration_too_similar">Pinch dan tangan terbuka terlalu mirip. Buka tangan lebih lebar dan rapatkan jari saat pinch, lalu ulangi.</string>
     <string name="calibration_restart">Ulangi</string>
     <string name="calibration_close">Tutup</string>
+    <string name="sensitivity_title">Sensitivitas pinch</string>
+    <string name="sensitivity_why">Menggeser sedikit hasil kalibrasi. Lebih longgar: pinch terbaca dari jarak jari yang lebih lebar. Lebih ketat: jari harus lebih rapat, jadi pinch tak sengaja berkurang. Tidak perlu kalibrasi ulang.</string>
+    <string name="sensitivity_tight">Lebih ketat</string>
+    <string name="sensitivity_loose">Lebih longgar</string>
+    <string name="sensitivity_next_start">Berlaku saat Start berikutnya. Stop lalu Start lagi untuk memakainya.</string>
     <string name="open_playground">Buka area uji</string>
     <string name="step_done">✓ %1$s</string>
     <string name="step_todo">○ %1$s</string>
