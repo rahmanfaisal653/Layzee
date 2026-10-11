@@ -37,7 +37,7 @@ import java.util.concurrent.Executors
  * Load: the camera's fps range is locked (see [FpsRanges]); [FramePacer] then drops frames before conversion
  * and inference, by gesture state, and holds the model while Idle and the scene is still.
  *
- * [preview] is for the dashboard preview and calibration: every frame goes to the model, so the picture
+ * [preview] is for the dashboard test screen: every frame goes to the model, so the picture
  * stays smooth when no hand is in view. A frame that arrives while the model is still busy is ignored by
  * MediaPipe's LIVE_STREAM mode, so a slow phone drops frames instead of queueing them. The service never sets it.
  */

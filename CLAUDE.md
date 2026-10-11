@@ -6,7 +6,7 @@ App Android "air trackpad": kamera depan membaca gesture **pinch** satu tangan u
 
 Posisi produk: bukan sekadar "scroll pakai tangan", tapi kontrol yang **presisi dan ringan**.
 
-Istilah domain (Pinch, Swipe, Hand size, Off/Idle/Tracking/Pinch, Overlay, Dashboard, Calibration, Pinch sensitivity) didefinisikan di `CONTEXT.md`. Pakai istilah itu, bukan sinonim yang tercantum di `_Avoid_`.
+Istilah domain (Pinch, Swipe, Hand size, Off/Idle/Tracking/Pinch, Overlay, Dashboard, Pinch test) didefinisikan di `CONTEXT.md`. Pakai istilah itu, bukan sinonim yang tercantum di `_Avoid_`.
 
 ## Prinsip Utama
 
@@ -36,10 +36,9 @@ Istilah domain (Pinch, Swipe, Hand size, Off/Idle/Tracking/Pinch, Overlay, Dashb
 - Overlay: ikon melayang yang bisa digeser dan menempel ke tepi, warnanya mengikuti status (Idle / Tracking / Pinch). Klik membuka menu kecil: "Stop" dan "Buka dashboard". Tidak ada tombol Start.
 - Dashboard:
   - Panduan izin langkah demi langkah dengan status centang: Accessibility Service, overlay, dan kamera dicek otomatis; pengecualian optimasi baterai/autostart dicentang manual oleh pengguna (app membuka halaman pengaturannya). Sertakan penjelasan jujur kenapa Accessibility dibutuhkan dan bahwa gambar diproses lokal.
-  - Kalibrasi pinch dengan pratinjau kamera dan landmark. Wajib sebelum Start pertama; bisa diulang kapan saja.
-  - Pengaturan inti: sensitivitas pinch (menggeser sedikit hasil kalibrasi).
-  - Pratinjau kamera dengan landmark dan label status hidup (Off/Idle/Tracking/Pinch), tanpa tampilan angka. Menggantikan daftar band warna di area uji lama; tidak ada konten scroll.
-  - Tampilan informatif dan rapi, bukan layar debug: ikon status berwarna di panduan izin, tanggal kalibrasi terakhir, bagian Tentang & privasi (diproses lokal, tidak ada izin internet, versi app, alasan Accessibility), dan cara pakai 3 baris.
+  - Tanpa kalibrasi dan tanpa pengaturan pinch (keputusan pengguna): ambang pinch tetap di `GestureConfig`, disetel dari ukuran nyata di HP uji.
+  - Layar uji pinch (satu layar): pratinjau kamera dengan landmark, label status hidup (Idle/Tracking/Pinch) tanpa angka, dan daftar di bawahnya yang discroll oleh pinch.
+  - Tampilan informatif dan rapi, bukan layar debug: ikon status berwarna di panduan izin, bagian Tentang & privasi (diproses lokal, tidak ada izin internet, versi app, alasan Accessibility), dan cara pakai 3 baris.
   - Tanpa dependensi UI baru: warna dan gaya lewat `colors.xml`/`themes.xml` (gelap-first, terang mengikuti sistem), kartu lewat drawable XML, ikon lewat vector drawable.
 - Ikon: launcher (adaptive vector, ada versi monokrom), overlay (glyph berubah sesuai status, bukan hanya warna), dan notifikasi (monokrom).
 - Saat tangan hilang atau pinch dilepas, status kembali ke Tracking/Idle (bukan Off). Pinch berikutnya baru dihitung setelah jari sempat terbuka.
@@ -87,8 +86,7 @@ Kamera (thread analisis, STRATEGY_KEEP_ONLY_LATEST)
 ## Logika Pinch
 
 - **Normalisasi jarak**: jarak ujung jempol (landmark 4) ke ujung telunjuk (landmark 8) dibagi **hand size** (jarak landmark 0 ke 9). Kalikan koordinat ternormalisasi dengan lebar/tinggi gambar sebenarnya sebelum menghitung jarak.
-- **Hysteresis + debounce**: ambang masuk dan keluar pinch berbeda, status berubah setelah bertahan 2-3 frame. Angka awal hanya titik mulai dan harus disetel lewat kalibrasi.
-- **Kalibrasi personal**: pengguna pinch dan buka tangan beberapa kali (sekitar 5 kali masing-masing), ambang ditentukan dari nilai kedua kondisi. Sensitivitas pinch hanya menggeser ambang itu sedikit.
+- **Hysteresis + debounce**: ambang masuk dan keluar pinch berbeda, status berubah setelah bertahan 2-3 frame. Angka disetel dari pengukuran di HP uji (log debug), bukan kalibrasi.
 - **Pinch palsu lebih mahal daripada pinch terlewat** (satu swipe tak sengaja langsung mengganti page di app lain). Karena itu:
   - Konfirmasi ukuran cadangan (misalnya jarak ujung jempol ke sendi tengah telunjuk): pinch hanya mulai jika jarak ujung **dan** ukuran cadangan sama-sama di bawah ambang (AND, bukan OR).
   - Debounce 3 frame, dan tidak ada pinch jika **hand size** di bawah batas minimum dalam piksel (angka awal disetel lewat uji); status tetap Tracking.
@@ -102,7 +100,7 @@ Kamera (thread analisis, STRATEGY_KEEP_ONLY_LATEST)
 - Resolusi analisis rendah (mulai sekitar 320x240 atau 480x360). Naikkan hanya jika uji menunjukkan pinch meleset. Arah optimasi: dari hemat ke akurat.
 - **FPS adaptif**: rendah (sekitar 5 fps) saat tidak ada tangan (Idle), naik (15-20 fps) saat tangan terlihat, tertinggi saat pinch, kembali ke fps Idle jika tangan hilang beberapa detik. Tidak ada auto-Off.
 - **Gerbang gerak**: saat Idle, bandingkan frame abu-abu sangat kecil (misalnya 64x48) dan lewati model jika selisih kecil.
-- Hanya satu tangan, hanya frame terbaru, tanpa pratinjau kamera di overlay (pratinjau hanya aktif saat dashboard terbuka). Selama pratinjau dashboard/kalibrasi terbuka, pacer dan gerbang gerak dimatikan supaya gambar lancar; mode berjalan di app lain tidak berubah.
+- Hanya satu tangan, hanya frame terbaru, tanpa pratinjau kamera di overlay (pratinjau hanya aktif saat dashboard terbuka). Selama layar uji pinch terbuka, pacer dan gerbang gerak dimatikan supaya gambar lancar; mode berjalan di app lain tidak berubah.
 - Rentang fps kamera 15-30 tidak diubah per status (keputusan pengguna). Pengukuran baterai/beban ditunda: lihat `.scratch/polish/deferred.md`.
 - Minta CameraX output `OUTPUT_IMAGE_FORMAT_RGBA_8888`, jangan konversi YUV ke RGB manual di Kotlin.
 - Kunci rentang fps kamera (`CONTROL_AE_TARGET_FPS_RANGE`) agar fps tidak turun di cahaya redup.
@@ -145,7 +143,7 @@ Kalau kamera yang menyala terus (tanpa auto-Off) melewati anggaran baterai, pert
    - Pinch andal di berbagai sudut dan pencahayaan.
    - Goresan Accessibility terasa mulus di Instagram/TikTok.
    - Ukur latensi dan kecepatan gerak berhenti lewat log debug.
-2. Dashboard minimal (panduan izin, kalibrasi dengan preview, playground), yang juga menjadi alat uji spike.
+2. Dashboard minimal (panduan izin, layar uji pinch), yang juga menjadi alat uji spike.
 3. Overlay.
 4. Tetapkan anggaran ringan yang terukur.
 

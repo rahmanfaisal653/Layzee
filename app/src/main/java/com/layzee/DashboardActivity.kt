@@ -20,19 +20,12 @@ import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.ListView
-import android.widget.SeekBar
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
-import com.layzee.calibration.Calibration
-import com.layzee.calibration.CalibrationSession
-import com.layzee.calibration.CalibrationStore
-import com.layzee.calibration.SensitivityStore
-import com.layzee.setup.SettingsStore
-import com.layzee.setup.Tuning
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
@@ -43,11 +36,11 @@ import com.layzee.setup.SetupStore
 import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
- * The permission guide: one checked step per permission, then Calibration, Start/Stop and the playground.
+ * The permission guide: one checked step per permission, then Start/Stop and the pinch test screen.
  * Accessibility, overlay and camera are re-read every time the screen returns to the front; the battery step
- * is ticked by the user, since Android cannot report it. The camera runs here only on the Calibration screen
- * (preview with landmarks), and only while that screen is open and Layzee is Off; otherwise [LayzeeService]
- * owns the pipeline.
+ * is ticked by the user, since Android cannot report it. The camera runs here only on the test screen
+ * (preview with landmarks, the live state, and a list a pinch scrolls), and only while that screen is open and
+ * Layzee is Off; otherwise [LayzeeService] owns the pipeline.
  */
 class DashboardActivity : ComponentActivity() {
     private lateinit var store: SetupStore
@@ -59,48 +52,37 @@ class DashboardActivity : ComponentActivity() {
     private lateinit var diedHint: View
     private lateinit var toggle: Button
     private lateinit var playground: ListView
-    private lateinit var stepCalibration: TextView
-    private lateinit var openCalibration: Button
-    private lateinit var calibrationHint: View
-    private lateinit var calibrationPanel: View
+    private lateinit var openTest: Button
+    private lateinit var testHint: View
+    private lateinit var testPanel: View
     private lateinit var landmarkView: LandmarkView
-    private lateinit var calibrationPrompt: TextView
-    private lateinit var calibrationProblem: TextView
-    private lateinit var calibrationStore: CalibrationStore
-    private lateinit var sensitivityStore: SensitivityStore
-    private lateinit var sensitivityHint: View
+    private lateinit var testState: TextView
 
-    // The session is fed from the MediaPipe callback thread and read on the main thread.
-    private val calibrationLock = Any()
-    private var session = CalibrationSession()
-    private var sessionSaved = false
-    private var calibrationPipeline: CameraPipeline? = null
-    // Late callbacks from the camera threads after close must not draw or feed the session.
-    @Volatile private var calibrating = false
-    private var openCalibrationAfterPermission = false
+    private var testPipeline: CameraPipeline? = null
+    // Late callbacks from the camera threads after close must not draw.
+    @Volatile private var testing = false
+    private var openTestAfterPermission = false
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val renderCalibration = Runnable { renderCalibration() }
+    @Volatile private var shownState: GestureState? = null
 
-    // Calibration only needs the picture and the landmarks; nothing is dispatched.
-    private val calibrationListener = object : HandLandmarkerSource.Listener {
+    // The test screen shows the picture, the landmarks and the live state; a pinch also flicks the list below.
+    private val testListener = object : HandLandmarkerSource.Listener {
         override fun onFrame(frame: HandFrame, state: GestureState) {
-            if (!calibrating) return
-            synchronized(calibrationLock) { session.onFrame(frame) }
+            if (!testing) return
             landmarkView.update(frame, state == GestureState.PINCH)
-            mainHandler.post(renderCalibration)
+            if (state != shownState) {
+                shownState = state
+                mainHandler.post { if (testing) testState.setText(stateLabel(state)) }
+            }
         }
 
         override fun onImage(image: Bitmap) {
-            if (calibrating) landmarkView.setImage(image)
+            if (testing) landmarkView.setImage(image)
         }
     }
 
-    private val calibrationBack = object : OnBackPressedCallback(false) {
-        override fun handleOnBackPressed() = closeCalibration()
-    }
-
-    private val closePlayground = object : OnBackPressedCallback(false) {
-        override fun handleOnBackPressed() = showPlayground(false)
+    private val testBack = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() = closeTest()
     }
 
     private val requestCamera =
@@ -108,8 +90,8 @@ class DashboardActivity : ComponentActivity() {
             // Denied with "don't ask again" makes the dialog silent; the app's settings page is the way out.
             if (!granted && !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) openAppInfo()
             refresh()
-            if (granted && openCalibrationAfterPermission) openCalibration()
-            openCalibrationAfterPermission = false
+            if (granted && openTestAfterPermission) openTest()
+            openTestAfterPermission = false
         }
 
     // The foreground service runs either way; without this permission its notification is only in the task manager.
@@ -120,8 +102,6 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
         store = SetupStore(this)
-        calibrationStore = CalibrationStore(this)
-        sensitivityStore = SensitivityStore(this)
         stepAccessibility = findViewById(R.id.step_accessibility)
         stepOverlay = findViewById(R.id.step_overlay)
         stepCamera = findViewById(R.id.step_camera)
@@ -131,15 +111,12 @@ class DashboardActivity : ComponentActivity() {
         toggle = findViewById(R.id.toggle)
         playground = findViewById(R.id.playground)
         playground.adapter = PlaygroundAdapter()
-        onBackPressedDispatcher.addCallback(this, closePlayground)
-        onBackPressedDispatcher.addCallback(this, calibrationBack)
-        stepCalibration = findViewById(R.id.step_calibration)
-        openCalibration = findViewById(R.id.open_calibration)
-        calibrationHint = findViewById(R.id.calibration_hint)
-        calibrationPanel = findViewById(R.id.calibration_panel)
+        onBackPressedDispatcher.addCallback(this, testBack)
+        openTest = findViewById(R.id.open_test)
+        testHint = findViewById(R.id.test_hint)
+        testPanel = findViewById(R.id.test_panel)
         landmarkView = findViewById(R.id.landmark_view)
-        calibrationPrompt = findViewById(R.id.calibration_prompt)
-        calibrationProblem = findViewById(R.id.calibration_problem)
+        testState = findViewById(R.id.test_state)
 
         findViewById<Button>(R.id.open_accessibility).setOnClickListener { openAccessibility() }
         findViewById<Button>(R.id.open_overlay_permission).setOnClickListener {
@@ -156,39 +133,15 @@ class DashboardActivity : ComponentActivity() {
             store.state = store.state.withBatteryDone(batteryDone.isChecked)
             refresh()
         }
-        openCalibration.setOnClickListener {
+        openTest.setOnClickListener {
             if (hasPermission(Manifest.permission.CAMERA)) {
-                openCalibration()
+                openTest()
             } else {
-                openCalibrationAfterPermission = true
+                openTestAfterPermission = true
                 requestCamera.launch(Manifest.permission.CAMERA)
             }
         }
-        sensitivityHint = findViewById(R.id.sensitivity_hint)
-        findViewById<SeekBar>(R.id.sensitivity).apply {
-            progress = sensitivityStore.level
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
-                    if (!fromUser) return
-                    sensitivityStore.level = value
-                    // The running service read its config at Start.
-                    sensitivityHint.visibility = if (LayzeeService.running) View.VISIBLE else View.GONE
-                }
-
-                override fun onStartTrackingTouch(bar: SeekBar) = Unit
-                override fun onStopTrackingTouch(bar: SeekBar) = Unit
-            })
-        }
-        val settings = SettingsStore(this)
-        landmarkView.dotScale = Tuning.dotScale(settings.dotLevel)
-        bindLevel(R.id.dot_size, settings.dotLevel) {
-            settings.dotLevel = it
-            landmarkView.dotScale = Tuning.dotScale(it)
-        }
-        bindLevel(R.id.swipe_speed, settings.speedLevel) { settings.speedLevel = it }
-        findViewById<Button>(R.id.calibration_restart).setOnClickListener { restartCalibration() }
-        findViewById<Button>(R.id.calibration_close).setOnClickListener { closeCalibration() }
-        findViewById<Button>(R.id.open_playground).setOnClickListener { showPlayground(true) }
+        findViewById<Button>(R.id.test_close).setOnClickListener { closeTest() }
         toggle.setOnClickListener {
             if (LayzeeService.running) LayzeeService.stop(this) else requestNotificationsThenStart()
         }
@@ -209,7 +162,7 @@ class DashboardActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        closeCalibration() // the preview and the camera exist only while the Dashboard is in front
+        closeTest() // the preview and the camera exist only while the Dashboard is in front
         LayzeeService.onRunningChanged = null
         super.onStop()
     }
@@ -227,19 +180,15 @@ class DashboardActivity : ComponentActivity() {
         bindStep(stepOverlay, R.string.step_overlay, permissions.overlay)
         bindStep(stepCamera, R.string.step_camera, permissions.camera)
         bindStep(stepBattery, R.string.step_battery, state.batteryDone)
-        val calibrated = calibrationStore.calibration != null
-        bindStep(stepCalibration, R.string.step_calibration, calibrated)
         batteryDone.isChecked = state.batteryDone
         diedHint.visibility = if (state.diedUnexpectedly) View.VISIBLE else View.GONE
         val running = LayzeeService.running
         toggle.setText(if (running) R.string.stop else R.string.start)
         // Stop is always available; Start only once the guide is complete.
-        toggle.isEnabled = running || state.canStart(permissions, calibrated)
-        // The front camera is Layzee's while it runs; Calibration needs it for itself.
-        openCalibration.setText(if (calibrated) R.string.calibration_repeat else R.string.calibration_start)
-        openCalibration.isEnabled = !running
-        if (!running) sensitivityHint.visibility = View.GONE
-        calibrationHint.visibility = if (running) View.VISIBLE else View.GONE
+        toggle.isEnabled = running || state.canStart(permissions)
+        // The front camera is Layzee's while it runs; the test screen needs it for itself.
+        openTest.isEnabled = !running
+        testHint.visibility = if (running) View.VISIBLE else View.GONE
     }
 
     private fun bindStep(view: TextView, @StringRes title: Int, done: Boolean) {
@@ -279,103 +228,41 @@ class DashboardActivity : ComponentActivity() {
         }
     }
 
-    private fun bindLevel(id: Int, level: Int, onChange: (Int) -> Unit) {
-        findViewById<SeekBar>(id).apply {
-            progress = level
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
-                    if (fromUser) onChange(value)
-                }
-
-                override fun onStartTrackingTouch(bar: SeekBar) = Unit
-                override fun onStopTrackingTouch(bar: SeekBar) = Unit
-            })
-        }
-    }
-
-    private fun showPlayground(show: Boolean) {
-        playground.visibility = if (show) View.VISIBLE else View.GONE
-        closePlayground.isEnabled = show
-    }
-
-    private fun openCalibration() {
-        if (calibrationPipeline != null || LayzeeService.running) return
-        calibrationPanel.visibility = View.VISIBLE
-        calibrationBack.isEnabled = true
-        restartCalibration()
-        calibrating = true
-        calibrationPipeline = CameraPipeline(
+    private fun openTest() {
+        if (testPipeline != null || LayzeeService.running) return
+        testPanel.visibility = View.VISIBLE
+        testBack.isEnabled = true
+        shownState = null
+        testState.setText(stateLabel(GestureState.IDLE))
+        testing = true
+        val metrics = resources.displayMetrics
+        testPipeline = CameraPipeline(
             context = this,
             lifecycleOwner = this,
-            config = userGestureConfig(),
-            listener = calibrationListener,
-            dispatcherProvider = { null },
+            config = GestureConfig(screenWidth = metrics.widthPixels, screenHeight = metrics.heightPixels),
+            listener = testListener,
+            // The same flick the service sends, so a pinch scrolls the list under the preview.
+            dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
             preview = true,
         ).also { it.start() }
     }
 
-    // The panel shows the state the user's own thresholds give, so what they see is what Start will do.
-    private fun userGestureConfig(): GestureConfig {
-        val stored = calibrationStore.calibration ?: return GestureConfig()
-        val metrics = resources.displayMetrics
-        return stored.withSensitivity(sensitivityStore.level).toGestureConfig(metrics.widthPixels, metrics.heightPixels)
-    }
-
-    private fun closeCalibration() {
-        calibrating = false
-        calibrationPipeline?.release()
-        calibrationPipeline = null
-        if (calibrationPanel.visibility != View.VISIBLE) return
+    private fun closeTest() {
+        testing = false
+        testPipeline?.release()
+        testPipeline = null
+        if (testPanel.visibility != View.VISIBLE) return
         landmarkView.clear()
-        calibrationPanel.visibility = View.GONE
-        calibrationBack.isEnabled = false
+        testPanel.visibility = View.GONE
+        testBack.isEnabled = false
         refresh()
     }
 
-    private fun restartCalibration() {
-        synchronized(calibrationLock) {
-            session = CalibrationSession()
-            sessionSaved = false
-        }
-        renderCalibration()
-    }
-
-    // Main thread. A finished run is saved here; an unfinished or failed one leaves the stored result alone.
-    private fun renderCalibration() {
-        val status: CalibrationSession.Status
-        val problem: CalibrationSession.Problem
-        val kind: CalibrationSession.Kind
-        val round: Int
-        var toSave: Calibration? = null
-        synchronized(calibrationLock) {
-            status = session.status
-            problem = session.problem
-            kind = session.kind
-            round = session.round
-            if (status == CalibrationSession.Status.DONE && !sessionSaved) {
-                sessionSaved = true
-                toSave = session.result
-            }
-        }
-        toSave?.let {
-            calibrationStore.calibration = it
-            refresh()
-        }
-        calibrationPrompt.text = when (status) {
-            CalibrationSession.Status.DONE -> getString(R.string.calibration_done)
-            CalibrationSession.Status.FAILED -> getString(R.string.calibration_failed)
-            CalibrationSession.Status.RUNNING -> getString(
-                if (kind == CalibrationSession.Kind.OPEN) R.string.calibration_open else R.string.calibration_pinch,
-                round,
-            )
-        }
-        val problemText = when (problem) {
-            CalibrationSession.Problem.NONE -> ""
-            CalibrationSession.Problem.NO_HAND -> getString(R.string.calibration_no_hand)
-            CalibrationSession.Problem.UNSTABLE -> getString(R.string.calibration_unstable)
-            CalibrationSession.Problem.TOO_SIMILAR -> getString(R.string.calibration_too_similar)
-        }
-        calibrationProblem.text = problemText
+    @StringRes
+    private fun stateLabel(state: GestureState) = when (state) {
+        GestureState.IDLE -> R.string.state_idle
+        GestureState.TRACKING -> R.string.state_tracking
+        GestureState.PINCH -> R.string.state_pinch
     }
 
     private fun hasPermission(permission: String) =

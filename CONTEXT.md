@@ -39,17 +39,13 @@ _Avoid_: Pinching, Active, Dragging
 ### Aplikasi
 
 **Dashboard**:
-Layar utama app untuk setup dan pengaturan. Satu-satunya tempat untuk Start, dan tempat kalibrasi dan pratinjau kamera berada. Menampilkan status Layzee yang sedang berjalan.
+Layar utama app untuk setup dan pengaturan. Satu-satunya tempat untuk Start, dan tempat layar uji pinch berada. Menampilkan status Layzee yang sedang berjalan.
 _Avoid_: Home, main screen
 
 **Overlay**:
 Ikon kecil melayang di atas app lain yang menunjukkan status dan membuka menu Stop atau Buka dashboard. Bisa digeser dan menempel ke tepi layar. Terlihat selama Layzee tidak **Off**.
 _Avoid_: Widget, floating button, bubble
 
-**Calibration**:
-Sesi singkat di dashboard: pengguna pinch dan membuka tangan beberapa kali, dan ambang pinch pribadinya ditentukan dari kedua kondisi itu. Wajib sebelum Start pertama.
-_Avoid_: Setup, training
-
-**Pinch sensitivity**:
-Pengaturan yang menggeser sedikit ambang hasil **calibration** ke lebih longgar atau lebih ketat. Tidak menggantikan calibration.
-_Avoid_: Threshold slider
+**Pinch test**:
+Layar di dashboard untuk mencoba pinch: pratinjau kamera dengan landmark, label status hidup, dan daftar di bawahnya yang discroll oleh pinch. Hanya untuk uji, tidak mengubah apa pun. Ambang pinch tetap (tanpa kalibrasi dan tanpa pengaturan sensitivitas).
+_Avoid_: Calibration, playground

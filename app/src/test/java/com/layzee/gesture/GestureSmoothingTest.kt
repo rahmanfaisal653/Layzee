@@ -6,12 +6,11 @@ import org.junit.Test
 
 /** The pinch ratios are smoothed (One Euro) with the default tuning; jitter must not pinch, a real pinch must. */
 class GestureSmoothingTest {
-    private val config = GestureConfig(enterRatio = 0.25f, exitRatio = 0.40f, fallbackEnterRatio = 0.30f, fallbackExitRatio = 0.50f)
+    private val config = GestureConfig(enterRatio = 0.25f, exitRatio = 0.40f, fallbackEnterRatio = 0.30f)
     private val rawConfig = GestureConfig(
         enterRatio = 0.25f,
         exitRatio = 0.40f,
         fallbackEnterRatio = 0.30f,
-        fallbackExitRatio = 0.50f,
         smoothingMinCutoffHz = 1000f,
         smoothingBeta = 0f,
     )

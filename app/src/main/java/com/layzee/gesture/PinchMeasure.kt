@@ -7,7 +7,7 @@ import kotlin.math.sqrt
  * - [tipRatio]: thumb tip to index tip over hand size.
  * - [fallbackRatio]: thumb tip to index PIP over hand size, for a partly hidden index tip.
  *
- * Shared by the engine and by calibration, so both read the hand the same way. Reuse one instance; no allocation.
+ * Reuse one instance; no allocation.
  */
 internal class PinchMeasure {
     var tipRatio = 0f

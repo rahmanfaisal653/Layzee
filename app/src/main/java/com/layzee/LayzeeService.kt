@@ -17,8 +17,6 @@ import android.view.WindowManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import com.layzee.calibration.CalibrationStore
-import com.layzee.calibration.SensitivityStore
 import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
@@ -44,7 +42,7 @@ class LayzeeService : Service(), LifecycleOwner {
 
     override val lifecycle: Lifecycle get() = registry
 
-    // The camera image is only shown while calibrating, never here.
+    // The camera image is only shown on the test screen, never here.
     private val forward = object : HandLandmarkerSource.Listener {
         override fun onFrame(frame: HandFrame, state: GestureState) {
             overlay?.setState(state)
@@ -150,11 +148,7 @@ class LayzeeService : Service(), LifecycleOwner {
             width = metrics.widthPixels
             height = metrics.heightPixels
         }
-        // The user's own thresholds; Start is blocked until a calibration exists, the defaults are only a fallback.
-        val stored = CalibrationStore(this).calibration ?: return GestureConfig(screenWidth = width, screenHeight = height)
-        // Read at every Start, so a slider change applies from the next Start.
-        val calibration = stored.withSensitivity(SensitivityStore(this).level)
-        return calibration.toGestureConfig(width, height)
+        return GestureConfig(screenWidth = width, screenHeight = height)
     }
 
     companion object {

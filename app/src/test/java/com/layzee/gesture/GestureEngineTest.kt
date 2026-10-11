@@ -9,10 +9,11 @@ class GestureEngineTest {
         enterRatio = 0.25f,
         exitRatio = 0.40f,
         fallbackEnterRatio = 0.30f,
-        fallbackExitRatio = 0.50f,
         minConfidence = 0.5f,
         enterFrames = 2,
         releaseFrames = 2,
+        exitFrames = 2,
+        exitMargin = 1f, // off here: the fixed thresholds are under test; see the exitMargin tests
         minHandSizePx = 20f,
         // Smoothing off (cutoff far above the frame rate): these tests check thresholds and debounce. See GestureSmoothingTest.
         smoothingMinCutoffHz = 1000f,
@@ -149,6 +150,46 @@ class GestureEngineTest {
     }
 
     @Test
+    fun exitMarginReleasesJustAboveTheClosestReadingOfThisPinch() {
+        config = GestureConfig(
+            fallbackEnterRatio = 0f, exitRatio = 0.4f, exitMargin = 0.07f, enterFrames = 2, exitFrames = 1,
+            minHandSizePx = 20f, smoothingMinCutoffHz = 1000f, smoothingBeta = 0f,
+        )
+        open()
+        feed(tipGap = 0.2f)
+        assertEquals(GestureState.PINCH, feed(tipGap = 0.2f))
+        // Loose touch reading of 0.2: still pinched at 0.25, released at 0.28 (well under the 0.4 exit threshold).
+        assertEquals(GestureState.PINCH, feed(tipGap = 0.25f))
+        assertEquals(GestureState.TRACKING, feed(tipGap = 0.28f))
+    }
+
+    @Test
+    fun exitMarginFollowsTheClosestReadingNotTheEntryReading() {
+        config = GestureConfig(
+            fallbackEnterRatio = 0f, exitRatio = 0.4f, exitMargin = 0.07f, enterFrames = 2, exitFrames = 1,
+            minHandSizePx = 20f, smoothingMinCutoffHz = 1000f, smoothingBeta = 0f,
+        )
+        open()
+        feed(tipGap = 0.2f)
+        feed(tipGap = 0.2f)
+        feed(tipGap = 0.1f) // pinch tightens: the baseline drops to 0.1
+        assertEquals(GestureState.PINCH, feed(tipGap = 0.15f))
+        assertEquals(GestureState.TRACKING, feed(tipGap = 0.2f))
+    }
+
+    @Test
+    fun oneFrameExitLeavesPinchButNeverFlicksTwice() {
+        config = GestureConfig(
+            fallbackEnterRatio = 0.30f, enterFrames = 2, releaseFrames = 2, exitFrames = 1, exitMargin = 1f, minHandSizePx = 20f,
+            smoothingMinCutoffHz = 1000f, smoothingBeta = 0f,
+        )
+        enterPinch()
+        assertEquals(GestureState.TRACKING, open())
+        // One apart frame left Pinch, but it does not re-arm the flick: pinching again straight away does nothing.
+        repeat(5) { assertEquals(GestureState.TRACKING, pinch()) }
+    }
+
+    @Test
     fun gapFlickeringBetweenThresholdsDoesNotFlickerPinch() {
         enterPinch()
         // 0.20 is inside enter, 0.35 is between enter and exit: both keep Pinch.
@@ -205,7 +246,6 @@ class GestureEngineTest {
     fun switchedOffFallbackLeavesTheTipMeasureInCharge() {
         config = GestureConfig(
             fallbackEnterRatio = 0f,
-            fallbackExitRatio = 0f,
             enterFrames = 2,
             minHandSizePx = 20f,
             smoothingMinCutoffHz = 1000f,
@@ -238,24 +278,17 @@ class GestureEngineTest {
     }
 
     @Test
-    fun fallbackAloneStaysPinchedWhileTipEstimateWobbles() {
+    fun tipApartReleasesEvenWhileFallbackStillReadsClose() {
         enterPinch()
-        repeat(5) { assertEquals(GestureState.PINCH, feed(tipGap = 0.8f, pipGap = 0.2f)) }
+        // An open hand can read 0.5-0.6 on the PIP measure: the tip measure alone ends the pinch.
+        feed(tipGap = 0.8f, pipGap = 0.2f)
+        assertEquals(GestureState.TRACKING, feed(tipGap = 0.8f, pipGap = 0.2f))
     }
 
     @Test
     fun farTipAndFarPipIsNotPinch() {
         open()
         repeat(5) { assertEquals(GestureState.TRACKING, feed(tipGap = 0.8f, pipGap = 0.6f)) }
-    }
-
-    @Test
-    fun fallbackReleasesOnlyWhenBothMeasuresAreApart() {
-        enterPinch()
-        // Tip is far but the thumb still touches the PIP (0.4 is inside the fallback band): stays pinched.
-        repeat(5) { assertEquals(GestureState.PINCH, feed(tipGap = 0.8f, pipGap = 0.4f)) }
-        feed(tipGap = 0.8f, pipGap = 0.6f)
-        assertEquals(GestureState.TRACKING, feed(tipGap = 0.8f, pipGap = 0.6f))
     }
 
     @Test
