@@ -5,7 +5,10 @@ package com.layzee.gesture
  * no allocation per frame.
  *
  * - Pinch distance = thumb tip to index tip over hand size, measured in real pixels.
- * - Fallback distance = thumb tip to index PIP over hand size, for a partly hidden index tip.
+ * - Fallback distance = thumb tip to index PIP over hand size, a second opinion: a pinch starts only when
+ *   both distances are under their enter thresholds (AND), unless calibration switched the fallback off.
+ * - Both distances are smoothed with a One Euro filter before any threshold is applied.
+ * - A hand under [GestureConfig.minHandSizePx] is too far away: it stays Tracking and never pinches.
  * - Hysteresis: different enter and exit thresholds; the band in between keeps the current state.
  * - Debounce: a change must hold for N consecutive frames before the state follows.
  * - Hand lost or low confidence leaves Pinch at once, with no grace period.
@@ -22,22 +25,34 @@ class GestureEngine {
     private var pendingFrames = 0
     private var apartFrames = 0
     private val measure = PinchMeasure()
+    private val tipFilter = OneEuroFilter()
+    private val fallbackFilter = OneEuroFilter()
 
     // True from a flick until the fingers have been apart long enough; losing the hand does not clear it.
     private var spent = false
 
-    /** Back to Idle. [spent] survives: losing the hand does not count as releasing the pinch. */
+    /** Back to Idle, filters forgotten. [spent] survives: losing the hand does not count as releasing the pinch. */
     private fun reset() {
         state = GestureState.IDLE
         pendingFrames = 0
         apartFrames = 0
+        tipFilter.reset()
+        fallbackFilter.reset()
     }
 
     fun process(frame: HandFrame, config: GestureConfig, out: GestureOutput) {
         out.command = SwipeCommand.NONE
 
-        if (!frame.handPresent || frame.confidence < config.minConfidence || !measure.measure(frame)) {
+        if (!frame.handPresent || frame.confidence < config.minConfidence) {
             reset()
+            out.state = state
+            return
+        }
+
+        if (!measure.measure(frame, config.minHandSizePx)) {
+            // Too far away to read: seen, but never a pinch. A pinch in progress ends at once.
+            reset()
+            state = GestureState.TRACKING
             out.state = state
             return
         }
@@ -45,8 +60,14 @@ class GestureEngine {
         if (state == GestureState.IDLE) state = GestureState.TRACKING
 
         val inPinch = state == GestureState.PINCH
-        val tipRatio = measure.tipRatio
-        val fallbackRatio = measure.fallbackRatio
+        val tipRatio = tipFilter.filter(measure.tipRatio, frame.timestampMs, config.smoothingMinCutoffHz, config.smoothingBeta)
+        // A 0/0 fallback pair means calibration switched it off (see Calibration): skip its filter too.
+        val fallbackOn = config.fallbackEnterRatio > 0f
+        val fallbackRatio = if (fallbackOn) {
+            fallbackFilter.filter(measure.fallbackRatio, frame.timestampMs, config.smoothingMinCutoffHz, config.smoothingBeta)
+        } else {
+            measure.fallbackRatio
+        }
         val apart = tipRatio > config.exitRatio && fallbackRatio > config.fallbackExitRatio
 
         apartFrames = if (apart) apartFrames + 1 else 0
@@ -56,7 +77,7 @@ class GestureEngine {
             // Stay pinched until both measures say the fingers are apart.
             !apart
         } else {
-            !spent && (tipRatio < config.enterRatio || fallbackRatio < config.fallbackEnterRatio)
+            !spent && tipRatio < config.enterRatio && (!fallbackOn || fallbackRatio < config.fallbackEnterRatio)
         }
 
         if (wantsPinch == inPinch) {

@@ -154,14 +154,7 @@ class LayzeeService : Service(), LifecycleOwner {
         val stored = CalibrationStore(this).calibration ?: return GestureConfig(screenWidth = width, screenHeight = height)
         // Read at every Start, so a slider change applies from the next Start.
         val calibration = stored.withSensitivity(SensitivityStore(this).level)
-        return GestureConfig(
-            enterRatio = calibration.enterRatio,
-            exitRatio = calibration.exitRatio,
-            fallbackEnterRatio = calibration.fallbackEnterRatio,
-            fallbackExitRatio = calibration.fallbackExitRatio,
-            screenWidth = width,
-            screenHeight = height,
-        )
+        return calibration.toGestureConfig(width, height)
     }
 
     companion object {

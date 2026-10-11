@@ -7,7 +7,14 @@ import org.junit.Test
 class GestureFlickTest {
     private val screenW = 1000
     private val screenH = 2000
-    private val cfg = GestureConfig(screenWidth = screenW, screenHeight = screenH, startYFraction = 0.65f)
+    // Smoothing off: these tests check the swipe command, not the filter. See GestureSmoothingTest.
+    private val cfg = GestureConfig(
+        screenWidth = screenW,
+        screenHeight = screenH,
+        startYFraction = 0.65f,
+        smoothingMinCutoffHz = 1000f,
+        smoothingBeta = 0f,
+    )
 
     private val engine = GestureEngine()
     private val frame = HandFrame()
@@ -15,7 +22,7 @@ class GestureFlickTest {
     private var clockMs = 0L
 
     /** A hand of 100 px (wrist to middle MCP) in a 640x480 frame; [tipGap] is thumb tip to index tip in hand sizes. */
-    private fun feed(cy: Float = 240f, tipGap: Float = 0.1f, confidence: Float = 0.9f): SwipeCommand {
+    private fun feed(cy: Float = 240f, tipGap: Float = 0.1f, pipGap: Float = 0.2f, confidence: Float = 0.9f): SwipeCommand {
         val width = 640
         val height = 480
         val cx = 320f
@@ -26,7 +33,7 @@ class GestureFlickTest {
         put(Landmark.MIDDLE_MCP, cx, cy - handSize / 2)
         put(Landmark.THUMB_TIP, cx, cy)
         put(Landmark.INDEX_TIP, cx + tipGap * handSize, cy)
-        put(Landmark.INDEX_PIP, cx, cy + 0.6f * handSize)
+        put(Landmark.INDEX_PIP, cx, cy + pipGap * handSize)
         frame.handPresent = true
         frame.confidence = confidence
         frame.frameWidth = width
@@ -45,17 +52,22 @@ class GestureFlickTest {
         return out.command
     }
 
-    private fun open() = feed(tipGap = 1.0f)
+    private fun open() = feed(tipGap = 1.0f, pipGap = 1.0f)
 
     /** Pinches until the flick fires. */
     private fun pinch() {
-        assertEquals(SwipeCommand.NONE, feed())
+        repeat(cfg.enterFrames - 1) { assertEquals(SwipeCommand.NONE, feed()) }
         assertEquals(SwipeCommand.FLICK, feed())
     }
 
     private fun release() {
         open()
         open()
+    }
+
+    @Test
+    fun threeFramesInARowAreNeededByDefault() {
+        assertEquals(3, GestureConfig().enterFrames)
     }
 
     @Test
@@ -77,7 +89,7 @@ class GestureFlickTest {
     @Test
     fun flickStartPointDoesNotDependOnWhereTheHandIs() {
         open()
-        feed(cy = 100f)
+        repeat(cfg.enterFrames - 1) { feed(cy = 100f) }
         assertEquals(SwipeCommand.FLICK, feed(cy = 100f))
         assertEquals(screenH * 0.65f, out.y, 0.01f)
     }

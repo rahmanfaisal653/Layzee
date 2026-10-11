@@ -1,5 +1,7 @@
 package com.layzee.calibration
 
+import com.layzee.gesture.GestureConfig
+
 /**
  * The user's own pinch thresholds, in hand sizes (see [com.layzee.gesture.GestureConfig]). Results of one
  * [CalibrationSession]; stored by [CalibrationStore] and used by the gesture engine from the next Start.
@@ -29,6 +31,16 @@ data class Calibration(
         val scale = 1f + steps * SCALE_PER_STEP
         return Calibration(enterRatio * scale, exitRatio * scale, fallbackEnterRatio * scale, fallbackExitRatio * scale)
     }
+
+    /** Engine config with these thresholds; the screen size only matters where a swipe is dispatched. */
+    fun toGestureConfig(screenWidth: Int, screenHeight: Int) = GestureConfig(
+        enterRatio = enterRatio,
+        exitRatio = exitRatio,
+        fallbackEnterRatio = fallbackEnterRatio,
+        fallbackExitRatio = fallbackExitRatio,
+        screenWidth = screenWidth,
+        screenHeight = screenHeight,
+    )
 
     companion object {
         const val SENSITIVITY_MIN = 0

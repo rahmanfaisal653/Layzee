@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
+import kotlin.math.hypot
 import com.layzee.gesture.HandFrame
 import com.layzee.gesture.Landmark
 
@@ -92,7 +93,13 @@ class LandmarkView @JvmOverloads constructor(
             canvas.restoreToCount(saved)
 
             if (!handVisible) return
-            val radius = resources.displayMetrics.density * 4f
+            // Dots follow the hand size, so a far hand is not hidden under them.
+            val density = resources.displayMetrics.density
+            val handSize = hypot(
+                (xs[Landmark.WRIST] - xs[Landmark.MIDDLE_MCP]) * uprightW * scale,
+                (ys[Landmark.WRIST] - ys[Landmark.MIDDLE_MCP]) * uprightH * scale,
+            )
+            val radius = (handSize * DOT_PER_HAND_SIZE).coerceIn(density * MIN_DOT_DP, density * MAX_DOT_DP)
             for (i in 0 until Landmark.COUNT) {
                 val special = highlight && (i == Landmark.THUMB_TIP || i == Landmark.INDEX_TIP)
                 canvas.drawCircle(
@@ -103,5 +110,11 @@ class LandmarkView @JvmOverloads constructor(
                 )
             }
         }
+    }
+
+    private companion object {
+        const val DOT_PER_HAND_SIZE = 0.03f
+        const val MIN_DOT_DP = 1f
+        const val MAX_DOT_DP = 2.5f
     }
 }

@@ -283,10 +283,17 @@ class DashboardActivity : ComponentActivity() {
         calibrationPipeline = CameraPipeline(
             context = this,
             lifecycleOwner = this,
-            config = GestureConfig(),
+            config = userGestureConfig(),
             listener = calibrationListener,
             dispatcherProvider = { null },
         ).also { it.start() }
+    }
+
+    // The panel shows the state the user's own thresholds give, so what they see is what Start will do.
+    private fun userGestureConfig(): GestureConfig {
+        val stored = calibrationStore.calibration ?: return GestureConfig()
+        val metrics = resources.displayMetrics
+        return stored.withSensitivity(sensitivityStore.level).toGestureConfig(metrics.widthPixels, metrics.heightPixels)
     }
 
     private fun closeCalibration() {

@@ -5,7 +5,7 @@ import org.junit.Test
 
 /** Drives the engine with synthetic frames and checks only the state that comes out. */
 class GestureEngineTest {
-    private val config = GestureConfig(
+    private var config = GestureConfig(
         enterRatio = 0.25f,
         exitRatio = 0.40f,
         fallbackEnterRatio = 0.30f,
@@ -13,6 +13,10 @@ class GestureEngineTest {
         minConfidence = 0.5f,
         enterFrames = 2,
         releaseFrames = 2,
+        minHandSizePx = 20f,
+        // Smoothing off (cutoff far above the frame rate): these tests check thresholds and debounce. See GestureSmoothingTest.
+        smoothingMinCutoffHz = 1000f,
+        smoothingBeta = 0f,
     )
 
     private var engine = GestureEngine()
@@ -60,7 +64,7 @@ class GestureEngineTest {
         return out.state
     }
 
-    private fun pinch() = feed(tipGap = 0.1f, pipGap = 0.6f)
+    private fun pinch() = feed(tipGap = 0.1f, pipGap = 0.2f)
     private fun open() = feed()
 
     private fun enterPinch() {
@@ -110,10 +114,10 @@ class GestureEngineTest {
         for ((handSize, cx, cy) in listOf(Triple(200f, 320f, 240f), Triple(40f, 100f, 80f))) {
             engine = GestureEngine()
             assertEquals(GestureState.TRACKING, feed(handSize = handSize, cx = cx, cy = cy))
-            feed(tipGap = 0.1f, pipGap = 0.6f, handSize = handSize, cx = cx, cy = cy)
+            feed(tipGap = 0.1f, pipGap = 0.2f, handSize = handSize, cx = cx, cy = cy)
             assertEquals(
                 GestureState.PINCH,
-                feed(tipGap = 0.1f, pipGap = 0.6f, handSize = handSize, cx = cx, cy = cy),
+                feed(tipGap = 0.1f, pipGap = 0.2f, handSize = handSize, cx = cx, cy = cy),
             )
             feed(handSize = handSize, cx = cx, cy = cy)
             assertEquals(GestureState.TRACKING, feed(handSize = handSize, cx = cx, cy = cy))
@@ -170,7 +174,7 @@ class GestureEngineTest {
     @Test
     fun lowConfidenceDuringPinchLeavesPinchImmediately() {
         enterPinch()
-        assertEquals(GestureState.IDLE, feed(tipGap = 0.1f, pipGap = 0.6f, confidence = 0.2f))
+        assertEquals(GestureState.IDLE, feed(tipGap = 0.1f, pipGap = 0.2f, confidence = 0.2f))
     }
 
     @Test
@@ -185,11 +189,52 @@ class GestureEngineTest {
     }
 
     @Test
-    fun hiddenIndexTipStillReadsAsPinchThroughFallback() {
-        // Index tip estimate is far from the thumb, but the thumb touches the index PIP.
+    fun closePipAloneDoesNotStartPinch() {
+        // The thumb touches the index PIP but the tip estimate says the fingers are apart: the pair must agree.
         open()
-        feed(tipGap = 0.8f, pipGap = 0.2f)
-        assertEquals(GestureState.PINCH, feed(tipGap = 0.8f, pipGap = 0.2f))
+        repeat(5) { assertEquals(GestureState.TRACKING, feed(tipGap = 0.8f, pipGap = 0.2f)) }
+    }
+
+    @Test
+    fun closeTipAloneDoesNotStartPinch() {
+        open()
+        repeat(5) { assertEquals(GestureState.TRACKING, feed(tipGap = 0.1f, pipGap = 0.6f)) }
+    }
+
+    @Test
+    fun switchedOffFallbackLeavesTheTipMeasureInCharge() {
+        config = GestureConfig(
+            fallbackEnterRatio = 0f,
+            fallbackExitRatio = 0f,
+            enterFrames = 2,
+            minHandSizePx = 20f,
+            smoothingMinCutoffHz = 1000f,
+            smoothingBeta = 0f,
+        )
+        open()
+        // The PIP is far, which would block the pinch if the fallback were still asked.
+        feed(tipGap = 0.1f, pipGap = 0.6f)
+        assertEquals(GestureState.PINCH, feed(tipGap = 0.1f, pipGap = 0.6f))
+    }
+
+    @Test
+    fun handBelowMinimumSizeStaysTrackingAndNeverPinches() {
+        // 15 px < 20 px minimum, with a perfect pinch pose.
+        assertEquals(GestureState.TRACKING, feed(handSize = 15f))
+        repeat(10) { assertEquals(GestureState.TRACKING, feed(tipGap = 0.1f, pipGap = 0.2f, handSize = 15f)) }
+    }
+
+    @Test
+    fun handShrinkingBelowMinimumEndsPinchAtOnce() {
+        enterPinch()
+        assertEquals(GestureState.TRACKING, feed(tipGap = 0.1f, pipGap = 0.2f, handSize = 15f))
+    }
+
+    @Test
+    fun handJustAboveMinimumSizeCanPinch() {
+        feed(handSize = 25f)
+        feed(tipGap = 0.1f, pipGap = 0.2f, handSize = 25f)
+        assertEquals(GestureState.PINCH, feed(tipGap = 0.1f, pipGap = 0.2f, handSize = 25f))
     }
 
     @Test

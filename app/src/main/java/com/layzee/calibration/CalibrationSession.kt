@@ -1,6 +1,7 @@
 package com.layzee.calibration
 
 import com.layzee.gesture.HandFrame
+import com.layzee.gesture.GestureConfig
 import com.layzee.gesture.PinchMeasure
 
 /**
@@ -61,7 +62,7 @@ internal class CalibrationSession {
         val elapsed = frame.timestampMs - askStartMs
         if (elapsed < SETTLE_MS) return
         if (elapsed < SETTLE_MS + WINDOW_MS) {
-            if (frame.handPresent && frame.confidence >= MIN_CONFIDENCE && count < MAX_SAMPLES && measure.measure(frame)) {
+            if (frame.handPresent && frame.confidence >= MIN_CONFIDENCE && count < MAX_SAMPLES && measure.measure(frame, GestureConfig.DEFAULT_MIN_HAND_SIZE_PX)) {
                 windowTip[count] = measure.tipRatio
                 windowFallback[count] = measure.fallbackRatio
                 count++
