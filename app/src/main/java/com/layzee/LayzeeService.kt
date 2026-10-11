@@ -26,7 +26,6 @@ import com.layzee.overlay.Overlay
 import com.layzee.pipeline.CameraPipeline
 import com.layzee.pipeline.HandLandmarkerSource
 import com.layzee.setup.SetupStore
-import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
  * The only place that runs the pipeline. A running service is "not Off": the camera stays on, even with
@@ -99,7 +98,6 @@ class LayzeeService : Service(), LifecycleOwner {
             lifecycleOwner = this,
             config = gestureConfig(),
             listener = forward,
-            dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
         ).also { it.start() }
     }
 
@@ -174,7 +172,7 @@ class LayzeeService : Service(), LifecycleOwner {
         }
     }
 
-    // The virtual finger works in real display pixels (including system bars), not app-window pixels.
+    // The flick works in real display pixels (including system bars), not app-window pixels.
     private fun gestureConfig(): GestureConfig {
         val windowManager = getSystemService(WindowManager::class.java)
         val width: Int

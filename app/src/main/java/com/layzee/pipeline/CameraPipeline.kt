@@ -21,7 +21,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.layzee.BuildConfig
 import com.layzee.gesture.GestureConfig
-import com.layzee.swipe.SwipeDispatcher
 import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -46,7 +45,6 @@ internal class CameraPipeline(
     private val lifecycleOwner: LifecycleOwner,
     config: GestureConfig,
     listener: HandLandmarkerSource.Listener,
-    dispatcherProvider: () -> SwipeDispatcher?,
     private val preview: Boolean = false,
 ) {
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
@@ -65,7 +63,7 @@ internal class CameraPipeline(
     private var provider: ProcessCameraProvider? = null
 
     init {
-        analysisExecutor.execute { source = HandLandmarkerSource(context, config, listener, pacer, dispatcherProvider) }
+        analysisExecutor.execute { source = HandLandmarkerSource(context, config, listener, pacer) }
     }
 
     @OptIn(ExperimentalCamera2Interop::class)

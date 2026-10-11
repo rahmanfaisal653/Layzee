@@ -20,7 +20,7 @@ import com.layzee.gesture.GestureState
 import com.layzee.gesture.HandFrame
 import com.layzee.gesture.Landmark
 import com.layzee.gesture.SwipeCommand
-import com.layzee.swipe.SwipeDispatcher
+import com.layzee.swipe.LayzeeAccessibilityService
 
 /**
  * MediaPipe Hand Landmarker in LIVE_STREAM mode (async, one hand) feeding the gesture engine.
@@ -34,7 +34,6 @@ internal class HandLandmarkerSource(
     private val config: GestureConfig,
     private val listener: Listener,
     private val pacer: FramePacer,
-    private val dispatcherProvider: () -> SwipeDispatcher?,
 ) {
     interface Listener {
         /** Called on the MediaPipe callback thread for every result. [frame] is only valid during the call. */
@@ -142,7 +141,6 @@ internal class HandLandmarkerSource(
         frame.timestampMs = ts
         frame.frameWidth = uprightWidth
         frame.frameHeight = uprightHeight
-        val dispatcher = dispatcherProvider()
 
         val hands = result.landmarks()
         val handedness = result.handedness()
@@ -167,18 +165,17 @@ internal class HandLandmarkerSource(
 
         if (BuildConfig.DEBUG) StageTimer.record(StageTimer.LOGIC, SystemClock.elapsedRealtimeNanos() - t0)
 
-        if (!closed && dispatcher != null && output.command != SwipeCommand.NONE) {
-            val d0 = if (BuildConfig.DEBUG) SystemClock.elapsedRealtimeNanos() else 0L
-            dispatch(dispatcher)
-            if (BuildConfig.DEBUG) StageTimer.record(StageTimer.DISPATCH, SystemClock.elapsedRealtimeNanos() - d0)
+        if (!closed && output.command == SwipeCommand.FLICK) {
+            val dispatcher = LayzeeAccessibilityService.dispatcher
+            if (dispatcher != null) {
+                val d0 = if (BuildConfig.DEBUG) SystemClock.elapsedRealtimeNanos() else 0L
+                if (BuildConfig.DEBUG) Log.d("LayzeeSwipe", "FLICK y=${output.y.toInt()}->${output.toY.toInt()}")
+                dispatcher.flick(output.x, output.y, output.toY)
+                if (BuildConfig.DEBUG) StageTimer.record(StageTimer.DISPATCH, SystemClock.elapsedRealtimeNanos() - d0)
+            }
         }
 
         listener.onFrame(frame, output.state)
-    }
-
-    private fun dispatch(dispatcher: SwipeDispatcher) {
-        if (BuildConfig.DEBUG) Log.d("LayzeeSwipe", "${output.command} y=${output.y.toInt()}->${output.toY.toInt()}")
-        if (output.command == SwipeCommand.FLICK) dispatcher.flick(output.x, output.y, output.toY)
     }
 
     private companion object {

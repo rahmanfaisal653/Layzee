@@ -257,8 +257,6 @@ class DashboardActivity : ComponentActivity() {
             lifecycleOwner = this,
             config = GestureConfig(screenWidth = metrics.widthPixels, screenHeight = metrics.heightPixels),
             listener = testListener,
-            // The same flick the service sends, so a pinch scrolls the list under the preview.
-            dispatcherProvider = { LayzeeAccessibilityService.dispatcher },
             preview = true,
         ).also { it.start() }
     }

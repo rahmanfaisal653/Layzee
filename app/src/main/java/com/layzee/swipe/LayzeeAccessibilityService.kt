@@ -5,7 +5,7 @@ import android.view.accessibility.AccessibilityEvent
 
 /**
  * Only exists to be allowed to dispatch gestures (`canPerformGestures`); it reads no screen content and
- * listens to no events. While it is connected, [dispatcher] is the way to send the virtual finger.
+ * listens to no events. While it is connected, [dispatcher] is the way to send the flick.
  */
 class LayzeeAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
