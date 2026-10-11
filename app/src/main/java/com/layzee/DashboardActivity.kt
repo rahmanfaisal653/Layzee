@@ -286,6 +286,7 @@ class DashboardActivity : ComponentActivity() {
             config = userGestureConfig(),
             listener = calibrationListener,
             dispatcherProvider = { null },
+            preview = true,
         ).also { it.start() }
     }
 

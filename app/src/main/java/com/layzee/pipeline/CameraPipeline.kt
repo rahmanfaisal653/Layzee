@@ -36,6 +36,10 @@ import java.util.concurrent.Executors
  *
  * Load: the camera's fps range is locked (see [FpsRanges]); [FramePacer] then drops frames before conversion
  * and inference, by gesture state, and holds the model while Idle and the scene is still.
+ *
+ * [preview] is for the dashboard preview and calibration: every frame goes to the model, so the picture
+ * stays smooth when no hand is in view. A frame that arrives while the model is still busy is ignored by
+ * MediaPipe's LIVE_STREAM mode, so a slow phone drops frames instead of queueing them. The service never sets it.
  */
 internal class CameraPipeline(
     private val context: Context,
@@ -43,6 +47,7 @@ internal class CameraPipeline(
     config: GestureConfig,
     listener: HandLandmarkerSource.Listener,
     dispatcherProvider: () -> SwipeDispatcher?,
+    private val preview: Boolean = false,
 ) {
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
         Thread(r, "layzee-analysis")
@@ -127,7 +132,11 @@ internal class CameraPipeline(
             val width = image.width
             val height = image.height
 
-            val verdict = pacer.admit(timestampNs / 1_000_000L, plane.buffer, plane.rowStride, width, height)
+            val verdict = if (preview) {
+                FramePacer.ADMIT
+            } else {
+                pacer.admit(timestampNs / 1_000_000L, plane.buffer, plane.rowStride, width, height)
+            }
             if (verdict != FramePacer.ADMIT) {
                 if (BuildConfig.DEBUG) StageTimer.skipped(verdict)
                 return

@@ -6,9 +6,11 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** ready-for-human (kode selesai; tinggal verifikasi di HP uji)
 
-- [ ] `CameraPipeline` menerima mode pratinjau yang melewati `FramePacer.admit` (semua frame diteruskan).
-- [ ] Mode berjalan di service tidak berubah.
-- [ ] Pratinjau hanya aktif saat layar itu terbuka dan Layzee Off (seperti sekarang).
+- [x] `CameraPipeline` menerima mode pratinjau yang melewati `FramePacer.admit` (semua frame diteruskan).
+- [x] Mode berjalan di service tidak berubah.
+- [x] Pratinjau hanya aktif saat layar itu terbuka dan Layzee Off (seperti sekarang).
 - [ ] Diverifikasi di HP uji: gambar tidak patah saat tangan keluar frame.
+
+Catatan implementasi: `CameraPipeline(preview = true)` dipakai `DashboardActivity.openCalibration`; `analyze()` melewati `pacer.admit` (semua frame diteruskan, STRATEGY_KEEP_ONLY_LATEST tetap membuang frame lama). `LayzeeService` tidak memakai parameter ini. Build dan unit test lolos; tidak ada unit test baru karena perubahan ada di lapisan CameraX.
