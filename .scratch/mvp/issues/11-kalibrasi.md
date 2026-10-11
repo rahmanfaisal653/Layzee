@@ -14,7 +14,7 @@
 - [x] Kalibrasi bisa diulang kapan saja dari Dashboard.
 - [x] Hasil kalibrasi tersimpan di perangkat dan dipakai gesture engine saat Start berikutnya.
 - [x] Jika tangan tidak terdeteksi atau sampel tidak cukup, pengguna melihat pesan jelas dan bisa mengulang.
-- [ ] Diverifikasi di HP uji: setelah kalibrasi, pinch pengguna terbaca dan tangan terbuka tidak terbaca sebagai pinch.
+- [x] Diverifikasi di HP uji: setelah kalibrasi, pinch pengguna terbaca dan tangan terbuka tidak terbaca sebagai pinch.
 
 ## Comments
 
