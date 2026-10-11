@@ -2,7 +2,7 @@
 
 Diisi bertahap saat evaluasi di HP. Bagian bertanda **BELUM DIUJI** menunggu pengujian manusia; jangan diisi dari dugaan.
 
-Keputusan akhir: **BELUM DITENTUKAN** (lanjut / setel / tinjau ulang)
+Keputusan akhir: **LANJUT** (ditetapkan 2026-10-11 atas konfirmasi pengguna; tiket 07-13 sudah dibangun dan lolos uji pengguna). Catatan: keputusan ini bertumpu pada laporan kualitatif, bukan angka. Latensi tidak pernah diukur dan TikTok tidak pernah diuji; HP uji lebih dekat ke mid-range.
 
 ## Perangkat uji
 
@@ -51,4 +51,4 @@ Sebelum uji: arah swipe harus dicek ulang. Setelah perbaikan rotasi di tiket 04,
 
 ## Revisi batas awal
 
-Belum ada.
+Tidak ada revisi. Batas latensi (≤150 ms / ≤100 ms) tetap dipakai sebagai target dan belum terverifikasi dengan angka.
