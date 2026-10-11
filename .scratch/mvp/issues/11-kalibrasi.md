@@ -6,7 +6,7 @@
 
 **Blocked by:** 10 (Dashboard: panduan izin dan persetujuan)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Layar kalibrasi menampilkan pratinjau kamera dan landmark; pratinjau hanya aktif di layar ini dan mati saat pengguna keluar.
 - [x] Pengguna diminta sekitar 5 kali pinch dan 5 kali tangan terbuka; ambang masuk dan keluar pinch dihitung dari nilai kedua kondisi.
@@ -23,3 +23,4 @@
 - Permintaan diulang otomatis dengan pesan bila tangan tidak terbaca atau terlalu bergerak; jika pinch dan tangan terbuka terlalu mirip, kalibrasi gagal dan hasil lama tidak ditimpa.
 - Kalibrasi menjalankan kamera sendiri di Dashboard, jadi tombolnya nonaktif saat Layzee berjalan (kamera depan dipakai service); Stop dulu. `LayzeeService.preview` dihapus karena tidak dipakai.
 - Start kini juga mensyaratkan kalibrasi (`SetupState.canStart(permissions, calibrated)`).
+- 2026-10-11: Diverifikasi di HP uji (Realme): kalibrasi selesai, pinch terbaca dan tangan terbuka tidak terbaca sebagai pinch. Tiket selesai.
