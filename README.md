@@ -12,7 +12,11 @@ Layzee is a light, precise "air trackpad" for Android, built for a phone propped
 2. Open the file on your phone and allow installs from that source when Android asks.
 3. Open Layzee and follow the setup guide in the **Dashboard**.
 
-Layzee is not on Google Play yet. The APK is signed with a development key, so Play Protect may show a warning on install.
+Layzee is not on Google Play yet, and Play Protect may block the install because Layzee uses the Accessibility Service and comes from outside the Play Store (this is common in Indonesia and other countries with stricter sideloading rules). If that happens, install it from a computer over USB debugging instead:
+
+```bash
+adb install -r app-arm64-v8a-release.apk
+```
 
 ## How to use
 
@@ -70,7 +74,18 @@ Requires JDK 17 and the Android SDK (compile SDK 36).
 ./gradlew :app:assembleRelease
 ```
 
-The APKs (one per ABI) land in `app/build/outputs/apk/release/`. Run the unit tests with `./gradlew :app:testDebugUnitTest`.
+The APKs (one per ABI) land in `app/build/outputs/apk/release/`.
+
+Release builds are signed with the key described in a `keystore.properties` file at the project root (not committed):
+
+```properties
+storeFile=/path/to/layzee-release.jks
+storePassword=...
+keyAlias=layzee
+keyPassword=...
+```
+
+Without that file, release builds fall back to the debug key. Run the unit tests with `./gradlew :app:testDebugUnitTest`.
 
 ## Tech
 
