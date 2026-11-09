@@ -1,61 +1,81 @@
 # Layzee
 
-Ganti page Reels, TikTok, atau Instagram tanpa menyentuh layar. Cukup **pinch** (jempol bertemu telunjuk) di depan kamera depan, dan Layzee mengirim satu swipe ke atas untuk pindah ke page berikutnya.
+Move to the next Reels, TikTok, or Instagram video without touching your phone. Just **pinch** (thumb meets index finger) in front of the front camera, and Layzee sends one swipe up to the next page.
 
-Layzee adalah app Android "air trackpad" yang ringan dan presisi, dirancang untuk HP yang disandarkan di stand sambil menonton feed.
+Layzee is a light, precise "air trackpad" for Android, built for a phone propped on a stand while you watch a feed.
 
-## Cara pakai
+## Install
 
-1. Buka **Dashboard**, ikuti panduan izin, lalu tekan **Start**.
-2. Letakkan HP di stand dan buka app feed favoritmu.
-3. Pinch di depan kamera depan: satu pinch = satu swipe ke atas.
+1. Download the APK for your phone from the [latest release](https://github.com/rahmanfaisal653/Layzee/releases/latest):
+   - `app-arm64-v8a-release.apk` for almost every phone from the last few years.
+   - `app-armeabi-v7a-release.apk` for older 32-bit phones.
+2. Open the file on your phone and allow installs from that source when Android asks.
+3. Open Layzee and follow the setup guide in the **Dashboard**.
 
-Ikon **overlay** melayang di atas app lain dan warnanya menunjukkan status. Ketuk untuk membuka menu kecil: **Stop** atau **Buka dashboard**.
+Layzee is not on Google Play yet. The APK is signed with a development key, so Play Protect may show a warning on install.
 
-## Fitur
+## How to use
 
-- **Pinch = swipe.** Begitu pinch terdeteksi, Layzee mengirim satu flick cepat ke atas dari tengah layar. Menahan pinch tidak mengulang swipe, dan gerak tangan tidak dibaca.
-- **Berlaku di semua app** yang sedang di depan, tanpa daftar putih.
-- **Deteksi andal.** Jarak jempol-telunjuk dinormalisasi dengan ukuran tangan, jadi tidak bergantung pada jarak tangan ke kamera. Pinch palsu sengaja dibuat lebih sulit terjadi daripada pinch yang terlewat.
-- **Hemat beban.** Resolusi analisis rendah, fps adaptif (rendah saat tidak ada tangan, naik saat tangan terlihat), dan hanya satu tangan yang dibaca. Dirancang untuk HP low-end dan mid-range.
-- **Layar uji pinch** di Dashboard: pratinjau kamera dengan landmark tangan, label status hidup, dan daftar yang bisa discroll dengan pinch.
-- **Tema** gelap dan terang mengikuti sistem.
+1. Open the **Dashboard**, grant the permissions in the setup guide, then tap **Start**.
+2. Prop your phone on a stand and open your favorite feed app.
+3. Pinch in front of the front camera: one pinch, one swipe up.
+
+A floating **overlay** icon sits on top of other apps, and its color and shape show the current status. Tap it for a small menu: **Stop** or **Buka dashboard** (open dashboard).
+
+## Features
+
+- **Pinch = swipe.** As soon as a pinch is detected, Layzee sends one quick flick up from the middle of the screen. Holding the pinch does not repeat it, and hand movement is ignored.
+- **Works in any app** in the foreground, with no allowlist.
+- **Reliable detection.** The thumb-to-index distance is measured against hand size, so it does not depend on how far your hand is from the camera. False pinches are deliberately harder to trigger than missed ones, because an accidental swipe skips a video.
+- **Light on the phone.** Low analysis resolution, an adaptive frame rate (low with no hand in view, higher once a hand appears), and only one hand is tracked. Built for low-end and mid-range phones.
+- **Pinch test** screen in the Dashboard: camera preview with hand landmarks, a live status label, and a list you can scroll by pinching.
+- **Dark and light theme** that follows the system.
 
 ## Status
 
-| Status | Artinya |
+| Status | Meaning |
 | --- | --- |
-| **Off** | Layzee mati: kamera tidak dipakai dan overlay tidak terlihat. |
-| **Idle** | Layzee berjalan, tetapi tidak ada tangan terlihat. |
-| **Tracking** | Tangan terlihat, belum pinch. |
-| **Pinch** | Pinch terdeteksi. |
+| **Off** | Layzee is stopped: the camera is not used and the overlay is hidden. |
+| **Idle** | Layzee is running, but no hand is in view. |
+| **Tracking** | A hand is in view, no pinch yet. |
+| **Pinch** | A pinch was detected and a swipe was sent. |
 
-Layzee tidak pernah mematikan dirinya sendiri: hanya kamu yang bisa menghentikannya (Stop dari overlay atau Dashboard). Saat layar mati, kamera dilepas otomatis dan dipasang lagi begitu layar menyala.
+Layzee never turns itself off: only you can stop it (Stop from the overlay or the Dashboard). When the screen turns off, the camera is released, and it comes back automatically when the screen turns on.
 
-## Izin yang dibutuhkan
+## Permissions
 
-| Izin | Untuk apa |
+| Permission | Why |
 | --- | --- |
-| **Accessibility Service** | Mengirim gerakan swipe ke app lain. Hanya dipakai untuk swipe ini, tidak membaca isi layar. |
-| **Kamera** | Membaca pinch lewat kamera depan. |
-| **Tampil di atas app lain** | Menampilkan ikon overlay. |
-| **Notifikasi** | Notifikasi foreground service yang menjaga kamera tetap aktif. |
-| **Pengecualian optimasi baterai / autostart** | Mencegah sistem mematikan Layzee di latar belakang (penting di HP dengan manajemen baterai agresif). Dicentang manual dari Dashboard. |
+| **Accessibility Service** | Sends the swipe gesture to other apps. Used only for that swipe; it does not read screen content. |
+| **Camera** | Reads the pinch through the front camera. |
+| **Display over other apps** | Shows the overlay icon. |
+| **Notifications** | The foreground service notification that keeps the camera running. |
+| **Battery optimization / autostart exception** | Stops the system from killing Layzee in the background (important on phones with aggressive battery management). Checked off manually from the Dashboard. |
 
-## Privasi
+## Privacy
 
-- Semua gambar diproses **di perangkat**. Tidak ada gambar yang disimpan atau dikirim.
-- Tidak ada akun, cloud, analitik, maupun izin internet.
+- Every image is processed **on your phone**. No image is stored or sent anywhere.
+- No account, no cloud, no analytics, and no internet permission.
 
-## Persyaratan
+## Requirements
 
-- Android 8.0 (API 26) atau lebih baru.
-- HP dengan kamera depan. Mode penyangga (HP di stand) adalah target pertama; mode genggam menyusul.
+- Android 8.0 (API 26) or newer.
+- A phone with a front camera. Stand mode (phone propped up) is the first target; handheld mode comes later.
 
-## Teknologi
+## Build from source
 
-Kotlin native dengan CameraX dan MediaPipe Hand Landmarker (CPU), tampilan View klasik tanpa Compose, dan dependensi seminimal mungkin.
+Requires JDK 17 and the Android SDK (compile SDK 36).
 
-## Status proyek
+```bash
+./gradlew :app:assembleRelease
+```
 
-Versi `0.1.0`, masih tahap MVP dan didistribusikan lewat APK langsung (sideload).
+The APKs (one per ABI) land in `app/build/outputs/apk/release/`. Run the unit tests with `./gradlew :app:testDebugUnitTest`.
+
+## Tech
+
+Native Kotlin with CameraX and MediaPipe Hand Landmarker (CPU), classic Views without Compose, and as few dependencies as possible. R8 shrinking and ABI splits keep the APK small.
+
+## Project status
+
+Version `0.1.0`, an MVP distributed as a direct APK download (sideload). The app interface is currently in Indonesian.
