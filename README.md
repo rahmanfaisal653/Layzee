@@ -109,3 +109,7 @@ Native Kotlin with CameraX and MediaPipe Hand Landmarker (CPU), classic Views wi
 ## Project status
 
 Version `0.1.0`, an MVP distributed as a direct APK download (sideload). The app interface is currently in Indonesian.
+
+## License
+
+[MIT](LICENSE)
