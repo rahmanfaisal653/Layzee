@@ -12,11 +12,26 @@ Layzee is a light, precise "air trackpad" for Android, built for a phone propped
 2. Open the file on your phone and allow installs from that source when Android asks.
 3. Open Layzee and follow the setup guide in the **Dashboard**.
 
-Layzee is not on Google Play yet, and Play Protect may block the install because Layzee uses the Accessibility Service and comes from outside the Play Store (this is common in Indonesia and other countries with stricter sideloading rules). If that happens, install it from a computer over USB debugging instead:
+### If Play Protect blocks the install
+
+Layzee is not on Google Play yet. In some countries (Indonesia among them), Play Protect blocks APKs installed from a browser, chat app, or file manager when they ask for the Accessibility Service. Layzee needs it only to send the swipe; it does not read screen content, and the full source code is in this repository if you want to check.
+
+To install anyway:
+
+1. Open the **Play Store**, tap your profile picture, then **Play Protect** → ⚙️ (settings).
+2. Turn off **Scan apps with Play Protect**.
+3. Install the Layzee APK.
+4. Turn **Scan apps with Play Protect** back on.
+
+Or install it from a computer over USB debugging:
 
 ```bash
 adb install -r app-arm64-v8a-release.apk
 ```
+
+### If the Accessibility switch is greyed out
+
+On Android 13 and newer, sideloaded apps start with restricted settings. Open **Settings → Apps → Layzee**, tap ⋮ (top right), choose **Allow restricted settings**, then go back to the Dashboard and turn on the Accessibility Service.
 
 ## How to use
 
